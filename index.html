@@ -192,11 +192,17 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .note { font-size: 16px; color: var(--muted); }
 .level { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 18px; }
 .cal-wrap { display: grid; gap: 10px; }
-.cal { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
-.day-cell { aspect-ratio: 1; max-width: 100%; border-radius: 8px; display: grid; place-items: center; font-size: 13px; color: var(--muted); background: var(--card); border: 1.5px solid var(--line); font-variant-numeric: tabular-nums; }
-.day-cell.some { background: var(--good-bg); color: var(--good); border-color: var(--good-bg); font-weight: 700; }
-.day-cell.full { background: var(--good); color: var(--paper); border-color: var(--good); font-weight: 700; }
-.day-cell.today { outline: 2.5px solid var(--accent); outline-offset: 1px; }
+.cal-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.cal-head .muted { font-size: 16px; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 14px; }
+.wd { text-align: center; font: 600 13px var(--f-display); color: var(--muted); letter-spacing: .04em; }
+.day-cell { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 600 16px/1 var(--f-display); color: var(--ink); background: var(--paper); border: 2px solid var(--line); }
+.day-cell.blank { visibility: hidden; }
+.day-cell.future { color: var(--muted); border-style: dashed; background: transparent; }
+.day-cell.missed { color: var(--muted); opacity: .6; }
+.day-cell.some { background: var(--good-bg); color: var(--good); border-color: var(--good); }
+.day-cell.full { background: var(--good); color: var(--paper); border-color: var(--good); font-size: 18px; }
+.day-cell.is-today { box-shadow: 0 0 0 3px var(--accent); }
 .key { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; }
 .key.some { background: var(--good-bg); border: 1.5px solid var(--good); }
 .key.full { background: var(--good); }
@@ -377,6 +383,7 @@ function mergeIn(o) {
   }
   for (const [d, n] of Object.entries(o.days || {})) P.days[d] = Math.max(P.days[d] || 0, Number(n) || 0);
   P.flags = Object.assign({}, o.flags || {}, P.flags || {});
+  if (o.start && (!P.start || o.start < P.start)) P.start = o.start;
   if (Array.isArray(o.seen)) P.seen = Array.from(new Set((P.seen || []).concat(o.seen)));
 }
 let writing = false, again = false, timer = null;
@@ -384,7 +391,7 @@ async function pushOnline() {
   if (!P.code) return;
   if (writing) { again = true; return; }
   writing = true;
-  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days, flags: P.flags, seen: P.seen || [] } }); if (online !== "ok") { online = "ok"; render(); } }
+  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days, flags: P.flags, seen: P.seen || [], start: P.start } }); if (online !== "ok") { online = "ok"; render(); } }
   catch (e) { if (online !== "off") { online = "off"; render(); } }
   finally { writing = false; if (again) { again = false; pushOnline(); } }
 }
@@ -400,6 +407,7 @@ async function loadOnline(code) {
   if (!P.code) { P.code = newCode(); try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} }
   try { mergeIn(await loadOnline(P.code)); } catch (e) {}
   if (!P.seen) P.seen = earnedIds();
+  if (!P.start) P.start = isoDay(new Date());
   try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
   await pushOnline();
   render();
@@ -428,6 +436,19 @@ function mark(k, ok) {
 }
 /* ---------- Motivation: levels, stars, badges, celebrations ---------- */
 const LEVELS = [[0, "Početnica"], [15, "Učenica"], [50, "Snalazi se"], [100, "Priča engleski"], [160, "Majstorica"]];
+const isoDay = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+/* 30-day challenge: day 1 is the first day she opened the app; after 30 days a new round starts */
+function challenge() {
+  const t = new Date(); t.setHours(12, 0, 0, 0);
+  const s0 = P.start ? new Date(P.start + "T12:00:00") : new Date(t);
+  const since = Math.max(0, Math.round((t - s0) / 864e5));
+  const first = new Date(s0); first.setDate(first.getDate() + Math.floor(since / 30) * 30);
+  const days = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(first); d.setDate(first.getDate() + i);
+    return { d, n: P.days[todayKey(d)] || 0, isToday: isoDay(d) === isoDay(t), future: d > t };
+  });
+  return { first, days, dayNo: since % 30 + 1, done: days.filter(x => x.n > 0).length };
+}
 const knownCount = () => ALL.filter(w => learned(w.key)).length;
 function levelOf(n) {
   let i = 0; LEVELS.forEach(([min], j) => { if (n >= min) i = j; });
@@ -539,8 +560,14 @@ function topBar(backTo) {
 function home() {
   const done = P.days[todayKey()] || 0, due = dueKeys().length, s = streak();
   const known = knownCount(), lv = levelOf(known);
-  const cal = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (29 - i)); const n = P.days[todayKey(d)] || 0;
-    return `<span class="day-cell${n >= DAILY_GOAL ? " full" : n ? " some" : ""}${i === 29 ? " today" : ""}" title="${d.getDate()}.${d.getMonth() + 1}. ${n ? n + " reči" : "nije učila"}">${d.getDate()}</span>`; }).join("");
+  const ch = challenge();
+  const lead = (ch.first.getDay() + 6) % 7; // Monday first
+  const cal = ["P", "U", "S", "Č", "P", "S", "N"].map(w => `<span class="wd">${w}</span>`).join("")
+    + Array.from({ length: lead }, () => `<span class="day-cell blank"></span>`).join("")
+    + ch.days.map(({ d, n, isToday, future }) => {
+      const cls = n >= DAILY_GOAL ? " full" : n ? " some" : future ? " future" : " missed";
+      return `<span class="day-cell${cls}${isToday ? " is-today" : ""}" title="${d.getDate()}.${d.getMonth() + 1}. ${n ? n + " reči" : future ? "" : "nije učila"}">${n >= DAILY_GOAL ? "✓" : d.getDate()}</span>`;
+    }).join("");
   const earned = new Set(earnedIds());
   const ph = PHRASES[Math.floor(Date.now() / 864e5) % PHRASES.length];
   const next = TOPICS.find(t => keysOf(t.id).some(k => !learned(k))) || TOPICS[0];
@@ -575,10 +602,10 @@ function home() {
           : `<button class="big" data-topic="${next.id}" data-tab="cards">Nastavi: ${esc(next.name)}</button>`}
     <p class="saved ${online === "ok" ? "on" : ""}">${online === "ok" ? `Napredak se čuva automatski. Tvoj kod je <b class="code">${P.code}</b>, zapiši ga negde.` : online === "off" ? "Trenutno nema interneta. Napredak se čuva na telefonu i poslaće se kad se internet vrati." : "Čuvam napredak…"}</p>
   </section>
-  <section class="cal-wrap" aria-label="Poslednjih 30 dana">
-    <h2>Poslednjih 30 dana</h2>
+  <section class="cal-wrap" aria-label="Izazov 30 dana">
+    <div class="cal-head"><h2>Izazov: 30 dana</h2><span class="muted">dan ${ch.dayNo} od 30 · ${ch.done} ${ch.done === 1 ? "dan" : "dana"} učenja</span></div>
     <div class="cal">${cal}</div>
-    <p class="note"><span class="key some"></span> učila &nbsp; <span class="key full"></span> ispunila cilj. Jedan propušten dan nedeljno ne prekida niz.</p>
+    <p class="note"><span class="key some"></span> učila &nbsp; <span class="key full"></span> ispunila cilj (30 reči). Jedan propušten dan nedeljno ne prekida niz.</p>
   </section>
   <section class="phrase" aria-label="Fraza dana">
     <span class="label">Fraza dana</span>
