@@ -235,6 +235,40 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .backup input { width: 100%; font: 700 22px/1.2 var(--f-body); letter-spacing: .15em; text-transform: uppercase; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px; }
 .code { letter-spacing: .08em; }
 .backup textarea { width: 100%; font: 14px/1.4 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; resize: vertical; }
+/* Tap (phone) or hover (computer) an English word for its Serbian meaning */
+.gw { cursor: help; border-bottom: 2px dotted var(--accent); border-radius: 2px; }
+.gw:hover, .gw.on { background: var(--rule); }
+.pop { position: fixed; z-index: 40; max-width: min(320px, calc(100vw - 24px)); background: var(--card); color: var(--ink); border: 2px solid var(--accent); border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.2); font: 400 17px/1.4 var(--f-body); text-align: left; display: grid; gap: 4px; }
+.pop .f { font-family: var(--f-display); font-size: 24px; font-weight: 600; }
+.pop .b { color: var(--muted); font-size: 16px; }
+.pop .e { font-weight: 700; font-size: 19px; }
+.pop .g { font-size: 14px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--margin); }
+.pop .w { font-size: 16px; }
+.tip-tap { font-size: 16px; color: var(--muted); }
+/* Talk */
+.scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+.scene { text-align: left; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 4px; min-height: 96px; }
+.scene:hover { border-color: var(--accent); }
+.scene .t { font-family: var(--f-display); font-size: 20px; font-weight: 600; }
+.scene .d { font-size: 15px; color: var(--muted); }
+.chat { display: grid; gap: 12px; }
+.msg { max-width: 90%; border-radius: 16px; padding: 12px 14px; display: grid; gap: 6px; }
+.msg.bot { background: var(--card); border: 1.5px solid var(--line); justify-self: start; border-bottom-left-radius: 4px; }
+.msg.me { background: var(--accent); color: var(--accent-ink); justify-self: end; border-bottom-right-radius: 4px; font-size: 20px; }
+.msg .en { font-size: 21px; line-height: 1.45; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.msg .sr { font-size: 17px; color: var(--muted); }
+.fix { justify-self: end; max-width: 90%; background: var(--bad-bg); border-radius: 12px; padding: 10px 14px; font-size: 17px; display: grid; gap: 4px; }
+.fix b { color: var(--bad); }
+.fix.good { background: var(--good-bg); }
+.fix.good b { color: var(--good); }
+.sugg { display: grid; gap: 8px; }
+.sugg button { text-align: left; border: 1.5px dashed var(--line); background: transparent; border-radius: 12px; padding: 8px 12px; font-size: 18px; }
+.sugg button span { display: block; font-size: 15px; color: var(--muted); }
+.composer { position: sticky; bottom: 0; background: var(--paper); padding: 8px 0 4px; display: grid; gap: 8px; border-top: 1.5px solid var(--line); }
+.composer .rowc { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.composer textarea { width: 100%; min-height: 60px; max-height: 150px; resize: vertical; font: 400 20px/1.4 var(--f-body); color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; }
+.composer .big { width: auto; padding: 0 22px; }
+.typing { color: var(--muted); font-style: italic; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -607,9 +641,14 @@ function home() {
     <div class="cal">${cal}</div>
     <p class="note"><span class="key some"></span> učila &nbsp; <span class="key full"></span> ispunila cilj (30 reči). Jedan propušten dan nedeljno ne prekida niz.</p>
   </section>
+  <section style="display:grid;gap:12px" aria-label="Razgovor na engleskom">
+    <h2>Razgovaraj na engleskom</h2>
+    <p class="muted">Dopisuj se na jednostavnom engleskom. Ako pogrešiš, dobićeš ispravku i objašnjenje na srpskom. Ako ne znaš kako nešto da kažeš, napiši na srpskom.</p>
+    <div class="scenes">${SCENES.map(([id, i, t, d]) => `<button class="scene" data-scene="${id}"><span class="t">${i} ${t}</span><span class="d">${d}</span></button>`).join("")}</div>
+  </section>
   <section class="phrase" aria-label="Fraza dana">
     <span class="label">Fraza dana</span>
-    <div class="en">${esc(ph.en)} ${sayBtn(ph.en)}</div>
+    <div class="en"><span>${gl(ph.en)}</span> ${sayBtn(ph.en)}</div>
     <div class="sr">${esc(ph.sr)}</div>
     <div class="hint">Izgovor: ${esc(ph.hint)}</div>
   </section>
@@ -647,8 +686,9 @@ function topic() {
   let body = "";
   if (tab === "words") body = `<ul class="words">${keysOf(t.id).map(k => { const w = BY_KEY[k]; return `<li>
       <div class="vis">${pic(w.pic, w.en)}</div>
-      <div class="w"><div class="en">${esc(w.en)}${learned(k) ? `<span class="ok-mark">znam</span>` : ""}</div><div class="sr">${esc(w.sr)}</div><div class="hint">${esc(w.hint)}</div></div>
+      <div class="w"><div class="en">${gl(w.en)}${learned(k) ? `<span class="ok-mark">znam</span>` : ""}</div><div class="sr">${esc(w.sr)}</div><div class="hint">${esc(w.hint)}</div></div>
       ${sayBtn(w.en)}</li>`; }).join("")}</ul>
+    <p class="tip-tap">Dodirni bilo koju englesku reč (podvučenu tačkicama) da vidiš šta znači i zašto tako izgleda.</p>
     <p class="note">Kartice i kviz te prvo pitaju ono što još ne znaš.${gameKind(t.id) ? " Probaj i Igru!" : ""}</p>`;
   else if (tab === "cards") body = cardsView();
   else if (tab === "game") body = gameView();
@@ -670,7 +710,7 @@ function deckBody() {
   if (V.pos >= V.deck.length) return doneBox(V.right, V.deck.length, "Dobro je! Ono što ne znaš videćeš ponovo uskoro.");
   const w = BY_KEY[V.deck[V.pos]];
   return `<p class="count">Kartica ${V.pos + 1} od ${V.deck.length}</p>
-    <div class="card">${w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${esc(w.en)}</div>${sayBtn(w.en)}</div>
+    <div class="card">${w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${V.flip ? gl(w.en) : esc(w.en)}</div>${sayBtn(w.en)}</div>
       ${V.flip ? `<div class="sr">${esc(w.sr)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div>` : `<p class="muted">Da li znaš šta znači?</p>`}</div>
     ${V.flip ? `<div class="pair"><button class="big no" data-know="0">Ne znam još</button><button class="big yes" data-know="1">Znam</button></div>`
              : `<button class="big" data-flip>Pokaži prevod</button>`}`;
@@ -756,7 +796,90 @@ function review() {
 }
 function render() {
   setTimeout(showCeleb, 50);
-  app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : home();
+  hidePop();
+  app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : V.screen === "talk" ? chatView() : home();
+}
+
+/* ---------- Word meanings: tap (phone) or hover (computer) ---------- */
+let LEX = {};
+const CHATLEX = {};
+const lookup = (form, chat) => { const f = form.toLowerCase().replace(/’/g, "'"); return (chat && CHATLEX[f]) || LEX[f] || CHATLEX[f] || null; };
+function gl(text, chat) {
+  return String(text).split(/([A-Za-z]+(?:['’][A-Za-z]+)?)/).map((part, i) => i % 2 && lookup(part, chat)
+    ? `<span class="gw" data-w="${esc(part)}" data-c="${chat ? "chat" : ""}">${esc(part)}</span>` : esc(part)).join("");
+}
+let popEl = null, popFor = null, popTimer = null, popAt = 0;
+function hidePop() { clearTimeout(popTimer); if (popEl) popEl.remove(); popEl = null; if (popFor) popFor.classList.remove("on"); popFor = null; }
+function showPop(el) {
+  if (popFor === el) return;
+  hidePop();
+  const form = el.dataset.w, x = lookup(form, el.dataset.c === "chat"); if (!x) return;
+  popFor = el; el.classList.add("on"); popAt = Date.now();
+  const p = document.createElement("div"); p.className = "pop"; p.setAttribute("role", "tooltip");
+  p.innerHTML = `<div class="f">${esc(form)}</div>${x.b && x.b.toLowerCase() !== form.toLowerCase() ? `<div class="b">od reči <b>${esc(x.b)}</b></div>` : ""}<div class="e">${esc(x.e || "")}</div>${x.g ? `<div class="g">${esc(x.g)}</div>` : ""}${x.w ? `<div class="w">${esc(x.w)}</div>` : ""}`;
+  document.body.appendChild(p); popEl = p;
+  const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect();
+  const left = Math.min(Math.max(12, r.left + r.width / 2 - pr.width / 2), innerWidth - pr.width - 12);
+  let top = r.bottom + 8; if (top + pr.height > innerHeight - 8) top = Math.max(8, r.top - pr.height - 8);
+  p.style.left = left + "px"; p.style.top = top + "px";
+  p.addEventListener("mouseenter", () => clearTimeout(popTimer));
+  p.addEventListener("mouseleave", () => { popTimer = setTimeout(hidePop, 250); });
+}
+const hoverable = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+document.addEventListener("mouseover", e => { if (!hoverable) return; const w = e.target.closest && e.target.closest(".gw"); if (w) { clearTimeout(popTimer); showPop(w); } });
+document.addEventListener("mouseout", e => { if (!hoverable) return; const w = e.target.closest && e.target.closest(".gw"); if (w) { clearTimeout(popTimer); popTimer = setTimeout(hidePop, 300); } });
+document.addEventListener("click", e => { if (!e.target.closest(".gw") && !e.target.closest(".pop")) hidePop(); }, true);
+window.addEventListener("scroll", () => { if (!hoverable && Date.now() - popAt > 600) hidePop(); }, { passive: true });
+fetch("lex.json").then(r => r.ok ? r.json() : {}).then(o => { LEX = o || {}; render(); }).catch(() => {});
+
+/* ---------- Talk: simple English conversations, corrections explained in Serbian ---------- */
+const CHAT_FN = "https://fszezlruwuyzdquomijs.supabase.co/functions/v1/eng-chat";
+const SCENES = [
+  ["upoznavanje", "👋", "Upoznavanje", "Neko te pita kako se zoveš i odakle si."],
+  ["kafic", "☕", "U kafiću", "Naruči kafu, čaj ili kolač."],
+  ["prodavnica", "🛒", "U prodavnici", "Kupi hleb, mleko i voće."],
+  ["put", "🧭", "Pitanje za put", "Pitaj kako da stigneš do stanice ili hotela."],
+  ["porodica", "👨‍👩‍👧", "Porodica", "Pričaj o deci i unucima."],
+  ["dan", "☀️", "Vreme i dan", "Kakvo je vreme, šta radiš danas."],
+  ["doktor", "🩺", "Kod doktora", "Reci šta te boli."],
+  ["slobodno", "💬", "Slobodan razgovor", "O čemu god želiš."]
+];
+async function chatCall() {
+  const c = V.chat; c.busy = true; c.err = ""; render();
+  try {
+    const res = await fetch(CHAT_FN, { method: "POST", headers: { apikey: SUPA_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ code: P.code, scene: c.scene, history: c.msgs.map(m => ({ role: m.role === "bot" ? "assistant" : "user", content: m.text })) }) });
+    const o = await res.json().catch(() => ({}));
+    if (!res.ok) c.err = o.error || "Nešto nije u redu. Probaj ponovo.";
+    else {
+      const last = c.msgs[c.msgs.length - 1];
+      if (last && last.role === "me") last.fix = o.correction || false;
+      (o.words || []).forEach(w => { if (w[0]) CHATLEX[String(w[0]).toLowerCase()] = { b: w[1] || "", e: w[2] || "", g: "", w: w[3] || "" }; });
+      c.msgs.push({ role: "bot", text: o.reply, sr: o.reply_sr, sugg: o.suggest || [] });
+      c.left = o.left;
+      setTimeout(() => speak(o.reply), 200);
+    }
+  } catch (e) { c.err = "Nema interneta. Probaj kad se povežeš."; }
+  if (V.chat === c) { c.busy = false; render(); const end = document.getElementById("chatend"); if (end) end.scrollIntoView({ block: "end" }); }
+}
+function chatSend() {
+  const c = V.chat, el = document.getElementById("chatin"), t = (el ? el.value : "").trim();
+  if (!c || !t || c.busy) return;
+  c.msgs.push({ role: "me", text: t.slice(0, 600) }); c.draft = "";
+  const td = todayKey(); P.days[td] = (P.days[td] || 0) + 1; save();
+  chatCall();
+}
+function chatView() {
+  const c = V.chat, sc = SCENES.find(s => s[0] === c.scene), last = c.msgs[c.msgs.length - 1];
+  const msgs = c.msgs.map(m => m.role === "bot"
+    ? `<div class="msg bot"><div class="en"><span>${gl(m.text, true)}</span>${sayBtn(m.text)}</div>${m.sr ? `<div class="sr">${esc(m.sr)}</div>` : ""}</div>`
+    : `<div class="msg me">${esc(m.text)}</div>${m.fix ? `<div class="fix"><span><b>Bolje:</b> ${esc(m.fix.fixed)}</span><span>${esc(m.fix.why)}</span></div>` : m.fix === false ? `<div class="fix good"><b>✓ Tačno!</b></div>` : ""}`).join("");
+  const sugg = !c.busy && last && last.role === "bot" && last.sugg && last.sugg.length ? `<div class="sugg"><span class="note">Ne znaš šta da kažeš? Dodirni predlog:</span>${last.sugg.map((x, i) => `<button data-sugg="${i}">${esc(x[0])}${x[1] ? `<span>${esc(x[1])}</span>` : ""}</button>`).join("")}</div>` : "";
+  return `${topBar("home")}<h1>${sc[1]} ${esc(sc[2])}</h1>
+    <p class="tip-tap">Dodirni englesku reč da vidiš šta znači. Zvučnik ponavlja rečenicu.</p>
+    <div class="chat">${msgs}${c.busy ? `<p class="typing">piše…</p>` : ""}${c.err ? `<div class="fix"><b>${esc(c.err)}</b></div>` : ""}${sugg}<span id="chatend"></span></div>
+    <div class="composer">${c.left != null && c.left < 15 ? `<span class="note">Još ${c.left} poruka danas</span>` : ""}
+      <div class="rowc"><textarea id="chatin" lang="en" placeholder="Write here… / Piši ovde…" autocapitalize="sentences">${esc(c.draft || "")}</textarea><button class="big" data-send ${c.busy ? "disabled" : ""}>Pošalji</button></div></div>`;
 }
 
 /* ---------- Events ---------- */
@@ -769,6 +892,14 @@ function pickAnswer(key) {
   render();
 }
 app.addEventListener("click", e => {
+  const gwEl = e.target.closest(".gw"); if (gwEl) { if (popFor === gwEl) hidePop(); else showPop(gwEl); return; }
+  const tb = e.target.closest("button");
+  if (tb) {
+    const d = tb.dataset;
+    if (d.scene) { V = { screen: "talk", chat: { scene: d.scene, msgs: [], busy: false } }; render(); window.scrollTo({ top: 0 }); chatCall(); return; }
+    if (d.sugg !== undefined) { V.chat.draft = V.chat.msgs[V.chat.msgs.length - 1].sugg[+d.sugg][0]; render(); const t = document.getElementById("chatin"); if (t) t.focus(); return; }
+    if (tb.hasAttribute("data-send")) { chatSend(); return; }
+  }
   const z = e.target.closest("[data-pick]");
   if (z) { pickAnswer(z.dataset.pick); return; }
   const b = e.target.closest("button"); if (!b) return;
@@ -806,6 +937,8 @@ app.addEventListener("click", e => {
     render(); return;
   }
 });
+app.addEventListener("input", e => { if (e.target.id === "chatin" && V.chat) V.chat.draft = e.target.value; });
+document.addEventListener("keydown", e => { if (e.target.id === "chatin" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); } });
 app.addEventListener("keydown", e => {
   const z = e.target.closest && e.target.closest("[data-pick]");
   if (z && (e.key === "Enter" || e.key === " ") && z.tagName !== "BUTTON") { e.preventDefault(); pickAnswer(z.dataset.pick); }
