@@ -63,7 +63,8 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
-.page { max-width: 720px; margin: 0 auto; position: relative; display: grid; gap: 22px; }
+.page { max-width: 720px; margin: 0 auto; position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.page > * { min-width: 0; }
 .page::before { content: ""; position: fixed; top: 0; bottom: 0; left: max(10px, calc(50% - 380px)); width: 2px; background: var(--margin); opacity: .35; pointer-events: none; }
 h1, h2, h3 { font-family: var(--f-display); font-weight: 600; line-height: 1.15; margin: 0; text-wrap: balance; }
 h1 { font-size: clamp(30px, 7vw, 40px); }
@@ -189,6 +190,31 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .tag line { stroke: var(--muted); stroke-width: 1.5; }
 
 .note { font-size: 16px; color: var(--muted); }
+.level { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 18px; }
+.cal-wrap { display: grid; gap: 10px; }
+.cal { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+.day-cell { aspect-ratio: 1; max-width: 100%; border-radius: 8px; display: grid; place-items: center; font-size: 13px; color: var(--muted); background: var(--card); border: 1.5px solid var(--line); font-variant-numeric: tabular-nums; }
+.day-cell.some { background: var(--good-bg); color: var(--good); border-color: var(--good-bg); font-weight: 700; }
+.day-cell.full { background: var(--good); color: var(--paper); border-color: var(--good); font-weight: 700; }
+.day-cell.today { outline: 2.5px solid var(--accent); outline-offset: 1px; }
+.key { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; }
+.key.some { background: var(--good-bg); border: 1.5px solid var(--good); }
+.key.full { background: var(--good); }
+.stars { font-size: 20px; letter-spacing: 2px; color: var(--line); line-height: 1; }
+.stars .on { color: #E9A800; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+.badge { background: var(--card); border: 1.5px dashed var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 2px; justify-items: center; text-align: center; opacity: .5; filter: grayscale(1); }
+.badge.got { opacity: 1; filter: none; border-style: solid; border-color: var(--good); }
+.badge .bi { font-size: 34px; line-height: 1.1; }
+.badge b { font-size: 16px; }
+.badge span:last-child { font-size: 14px; color: var(--muted); }
+.celeb { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px)); background: rgba(10, 18, 32, .55); }
+.celeb-box { background: var(--card); color: var(--ink); border-radius: 22px; padding: 28px 22px; max-width: 420px; width: 100%; display: grid; gap: 12px; text-align: center; border: 2px solid var(--accent); }
+.celeb-title { font-family: var(--f-display); font-weight: 600; font-size: 40px; color: var(--accent); }
+.celeb-box p { font-size: 20px; }
+.celeb-sign { font-family: var(--f-display); color: var(--muted); font-size: 18px !important; }
+.celeb-sign::before { content: "— "; }
+.confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
 .intro { background: var(--card); border: 2px solid var(--accent); border-radius: 18px; padding: 20px; display: grid; gap: 12px; }
 .intro ol { margin: 0; padding-left: 24px; display: grid; gap: 10px; }
 .intro ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
@@ -330,7 +356,7 @@ const FIGURE = `
 
 /* ---------- Progress (saved on this device) ---------- */
 const KEY = "engleski-za-mamu-v3";
-let P = { cards: {}, days: {}, slow: true };
+let P = { cards: {}, days: {}, slow: true, flags: {}, seen: null };
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") P = Object.assign(P, s); } catch (e) {}
 /* Progress is saved on this device and, automatically, online under a short personal code (no account needed). */
 const SUPA = "https://fszezlruwuyzdquomijs.supabase.co/rest/v1/rpc/", SUPA_KEY = "sb_publishable_1xLOxtE1-5PyZW0zdrjoBg_6000CtCx";
@@ -350,13 +376,15 @@ function mergeIn(o) {
     if (!m || (c.b || 0) > (m.b || 0) || ((c.b || 0) === (m.b || 0) && (c.due || 0) > (m.due || 0))) P.cards[k] = { b: c.b || 0, due: c.due || 0 };
   }
   for (const [d, n] of Object.entries(o.days || {})) P.days[d] = Math.max(P.days[d] || 0, Number(n) || 0);
+  P.flags = Object.assign({}, o.flags || {}, P.flags || {});
+  if (Array.isArray(o.seen)) P.seen = Array.from(new Set((P.seen || []).concat(o.seen)));
 }
 let writing = false, again = false, timer = null;
 async function pushOnline() {
   if (!P.code) return;
   if (writing) { again = true; return; }
   writing = true;
-  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days } }); if (online !== "ok") { online = "ok"; render(); } }
+  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days, flags: P.flags, seen: P.seen || [] } }); if (online !== "ok") { online = "ok"; render(); } }
   catch (e) { if (online !== "off") { online = "off"; render(); } }
   finally { writing = false; if (again) { again = false; pushOnline(); } }
 }
@@ -370,7 +398,9 @@ async function loadOnline(code) {
 }
 (async () => {
   if (!P.code) { P.code = newCode(); try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} }
-  try { mergeIn(await loadOnline(P.code)); try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} } catch (e) {}
+  try { mergeIn(await loadOnline(P.code)); } catch (e) {}
+  if (!P.seen) P.seen = earnedIds();
+  try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
   await pushOnline();
   render();
 })();
@@ -379,17 +409,87 @@ const todayKey = (d = new Date()) => d.getFullYear() + "-" + (d.getMonth() + 1) 
 const box = k => (P.cards[k] && P.cards[k].b) || 0;
 const learned = k => box(k) >= 3;
 function mark(k, ok) {
+  const lvBefore = levelOf(knownCount()).i, seenBefore = new Set(P.seen || []);
   const c = P.cards[k] || { b: 0, due: 0 };
   c.b = ok ? Math.min(5, c.b + 1) : 1;
   c.due = Date.now() + (ok ? DAYS[c.b] * 864e5 : 10 * 6e4);
   P.cards[k] = c;
   const t = todayKey(); P.days[t] = (P.days[t] || 0) + 1;
+  /* collect what to celebrate */
+  const lines = [];
+  if (P.days[t] === DAILY_GOAL) lines.push(`Današnji cilj je ispunjen: ${DAILY_GOAL} reči! Vidimo se sutra.`);
+  const lv = levelOf(knownCount());
+  if (lv.i > lvBefore) lines.push(`Novi nivo: <b>${lv.name}</b>`);
+  const fresh = earnedIds().filter(id => !seenBefore.has(id));
+  fresh.forEach(id => { const b = BADGES.find(x => x.id === id); if (b && id !== "goal") lines.push(`Nova značka: ${b.icon} <b>${b.name}</b>`); });
+  P.seen = Array.from(new Set((P.seen || []).concat(fresh)));
+  if (lines.length) CELEB.push(lines);
   save();
 }
+/* ---------- Motivation: levels, stars, badges, celebrations ---------- */
+const LEVELS = [[0, "Početnica"], [15, "Učenica"], [50, "Snalazi se"], [100, "Priča engleski"], [160, "Majstorica"]];
+const knownCount = () => ALL.filter(w => learned(w.key)).length;
+function levelOf(n) {
+  let i = 0; LEVELS.forEach(([min], j) => { if (n >= min) i = j; });
+  return { i, name: LEVELS[i][1], next: LEVELS[i + 1] || null };
+}
+function stars(id) {
+  const ks = keysOf(id), k = ks.filter(learned).length;
+  return k === ks.length ? 3 : k >= ks.length * 2 / 3 ? 2 : k >= ks.length / 3 ? 1 : 0;
+}
+let bestRun = null;
+const BADGES = [
+  { id: "first", icon: "👣", name: "Prvi korak", desc: "Prvi odgovor", test: () => Object.keys(P.cards).length > 0 },
+  { id: "goal", icon: "🎯", name: "Pun dan", desc: `Ispunjen dnevni cilj od ${DAILY_GOAL} reči`, test: () => Object.values(P.days).some(n => n >= DAILY_GOAL) },
+  { id: "s3", icon: "🔥", name: "3 dana zaredom", desc: "Učila tri dana zaredom", test: () => streak() >= 3 },
+  { id: "s7", icon: "🔥", name: "7 dana zaredom", desc: "Cela nedelja!", test: () => streak() >= 7 },
+  { id: "s30", icon: "🔥", name: "30 dana zaredom", desc: "Ceo mesec bez prekida", test: () => streak() >= 30 },
+  { id: "w25", icon: "📗", name: "25 reči", desc: "Naučila 25 reči", test: () => knownCount() >= 25 },
+  { id: "w50", icon: "📘", name: "50 reči", desc: "Naučila 50 reči", test: () => knownCount() >= 50 },
+  { id: "w100", icon: "📚", name: "100 reči", desc: "Naučila 100 reči", test: () => knownCount() >= 100 },
+  { id: "lesson", icon: "🏅", name: "Prva lekcija", desc: "Cela jedna lekcija naučena", test: () => TOPICS.some(t => stars(t.id) === 3) },
+  { id: "colors", icon: "🎨", name: "Sve boje", desc: "Naučila sve boje", test: () => stars("boje") === 3 },
+  { id: "body", icon: "🧍", name: "Ceo čovek", desc: "Sve delove tela postavila tačno u jednoj igri", test: () => !!(P.flags && P.flags.body) },
+  { id: "all", icon: "👑", name: "Sve reči", desc: "Naučila svaku reč u aplikaciji", test: () => knownCount() >= ALL.length }
+];
+const earnedIds = () => BADGES.filter(b => b.test() || (P.seen || []).includes(b.id)).map(b => b.id);
+const CELEB = [];
+function showCeleb() {
+  if (!CELEB.length || document.querySelector(".celeb")) return;
+  const lines = CELEB.shift();
+  const el = document.createElement("div");
+  el.className = "celeb"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Bravo mama!");
+  el.innerHTML = `<div class="celeb-box"><div class="celeb-title">Bravo mama!</div>${lines.map(l => `<p>${l}</p>`).join("")}<p class="celeb-sign">Nemanja</p><button class="big" data-celebok>Hvala!</button></div>`;
+  document.body.appendChild(el);
+  el.querySelector("button").focus();
+  el.addEventListener("click", e => { if (e.target.closest("[data-celebok]")) { el.remove(); showCeleb(); } });
+  confetti();
+}
+function confetti() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.createElement("canvas"); cv.className = "confetti";
+  const W = cv.width = innerWidth, H = cv.height = innerHeight; document.body.appendChild(cv);
+  const ctx = cv.getContext("2d"), cols = ["#D7263D", "#2E5EAA", "#2F9E44", "#F6C90E", "#F28C28", "#F49AC2"];
+  const bits = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * 80, y: H * .35, vx: (Math.random() - .5) * 12, vy: -Math.random() * 12 - 4, r: Math.random() * 6 + 4, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6 }));
+  const t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    bits.forEach(b => { b.vy += .35; b.x += b.vx; b.y += b.vy; b.a += .2; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a); ctx.fillStyle = b.c; ctx.fillRect(-b.r / 2, -b.r / 4, b.r, b.r / 2); ctx.restore(); });
+    if (t - t0 < 2200) requestAnimationFrame(frame); else cv.remove();
+  })(t0);
+}
+/* Gentle streak: one missed day per 7 days doesn't break the run */
 function streak() {
-  let n = 0; const d = new Date();
+  let n = 0, sinceSkip = 99; const d = new Date();
   if (!P.days[todayKey(d)]) d.setDate(d.getDate() - 1);
-  while (P.days[todayKey(d)]) { n++; d.setDate(d.getDate() - 1); }
+  for (let guard = 0; guard < 400; guard++) {
+    if (P.days[todayKey(d)]) { n++; sinceSkip++; }
+    else {
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      if (n > 0 && sinceSkip >= 6 && P.days[todayKey(prev)]) sinceSkip = 0; else break;
+    }
+    d.setDate(d.getDate() - 1);
+  }
   return n;
 }
 const dueKeys = () => ALL.filter(w => P.cards[w.key] && P.cards[w.key].b > 0 && P.cards[w.key].due <= Date.now()).map(w => w.key);
@@ -438,7 +538,10 @@ function topBar(backTo) {
 }
 function home() {
   const done = P.days[todayKey()] || 0, due = dueKeys().length, s = streak();
-  const known = ALL.filter(w => learned(w.key)).length;
+  const known = knownCount(), lv = levelOf(known);
+  const cal = Array.from({ length: 30 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (29 - i)); const n = P.days[todayKey(d)] || 0;
+    return `<span class="day-cell${n >= DAILY_GOAL ? " full" : n ? " some" : ""}${i === 29 ? " today" : ""}" title="${d.getDate()}.${d.getMonth() + 1}. ${n ? n + " reči" : "nije učila"}">${d.getDate()}</span>`; }).join("");
+  const earned = new Set(earnedIds());
   const ph = PHRASES[Math.floor(Date.now() / 864e5) % PHRASES.length];
   const next = TOPICS.find(t => keysOf(t.id).some(k => !learned(k))) || TOPICS[0];
   const intro = !P.intro ? `<section class="intro" aria-label="Kako se koristi">
@@ -466,10 +569,16 @@ function home() {
       <div class="stat"><b>${s}</b><span>${s === 1 ? "dan zaredom" : "dana zaredom"}</span></div>
       <div class="stat"><b>${known}</b><span>naučenih reči od ${ALL.length}</span></div>
     </div>
+    <div class="level"><span>Nivo: <b>${lv.name}</b></span>${lv.next ? `<span class="muted">još ${lv.next[0] - known} ${lv.next[0] - known === 1 ? "reč" : "reči"} do nivoa „${lv.next[1]}“</span>` : `<span class="muted">najviši nivo!</span>`}</div>
     <div class="goal" role="img" aria-label="Današnji cilj: ${Math.min(done, DAILY_GOAL)} od ${DAILY_GOAL}"><i style="width:${Math.min(100, done / DAILY_GOAL * 100)}%"></i></div>
     ${due ? `<button class="big" data-review>Ponovi ${due} ${due === 1 ? "reč" : "reči"}</button>`
           : `<button class="big" data-topic="${next.id}" data-tab="cards">Nastavi: ${esc(next.name)}</button>`}
     <p class="saved ${online === "ok" ? "on" : ""}">${online === "ok" ? `Napredak se čuva automatski. Tvoj kod je <b class="code">${P.code}</b>, zapiši ga negde.` : online === "off" ? "Trenutno nema interneta. Napredak se čuva na telefonu i poslaće se kad se internet vrati." : "Čuvam napredak…"}</p>
+  </section>
+  <section class="cal-wrap" aria-label="Poslednjih 30 dana">
+    <h2>Poslednjih 30 dana</h2>
+    <div class="cal">${cal}</div>
+    <p class="note"><span class="key some"></span> učila &nbsp; <span class="key full"></span> ispunila cilj. Jedan propušten dan nedeljno ne prekida niz.</p>
   </section>
   <section class="phrase" aria-label="Fraza dana">
     <span class="label">Fraza dana</span>
@@ -482,10 +591,16 @@ function home() {
     <div class="lessons">${TOPICS.map(t => {
       const ks = keysOf(t.id), k = ks.filter(learned).length;
       const peekPics = ks.map(x => BY_KEY[x].pic).filter(Boolean).slice(0, 4);
+      const st = stars(t.id);
       return `<button class="lesson" data-topic="${t.id}"><span class="t">${esc(t.name)}</span>
+        <span class="stars" aria-label="${st} od 3 zvezdice">${[1, 2, 3].map(i => `<span class="${i <= st ? "on" : ""}">★</span>`).join("")}</span>
         <span class="peek">${peekPics.map(p => p[0] === "#" ? `<span class="sw" style="background:${p}"></span>` : p.startsWith("n:") ? `<b>${p.slice(2)}</b>` : p.startsWith("d:") ? `<b>${p.slice(2)}</b>` : `<span aria-hidden="true">${p}</span>`).join("")}</span>
         <span class="n">${k} od ${ks.length} naučeno</span><span class="bar"><i style="width:${k / ks.length * 100}%"></i></span></button>`;
     }).join("")}</div>
+  </section>
+  <section style="display:grid;gap:12px" aria-label="Moje značke">
+    <h2>Moje značke <span class="muted" style="font-size:18px">${earned.size} od ${BADGES.length}</span></h2>
+    <div class="badges">${BADGES.map(b => `<div class="badge${earned.has(b.id) ? " got" : ""}"><span class="bi" aria-hidden="true">${b.icon}</span><b>${b.name}</b><span>${b.desc}</span></div>`).join("")}</div>
   </section>
   ${canSpeak ? "" : `<p class="note">Ovaj pregledač ne može da izgovara reči. Probaj u Chrome-u ili Safari-ju.</p>`}
   <details class="backup">
@@ -613,6 +728,7 @@ function review() {
   return `${topBar("home")}<h1>Ponavljanje</h1><p class="muted">Reči koje je vreme da ponoviš, iz svih lekcija.</p>${deckBody()}`;
 }
 function render() {
+  setTimeout(showCeleb, 50);
   app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : home();
 }
 
@@ -621,7 +737,7 @@ function pickAnswer(key) {
   const g = V.g; if (!g || g.answered || g.i >= g.items.length) return;
   const k = g.items[g.i], ok = key === k;
   g.answered = key; if (ok) g.right++;
-  if (g.kind === "body") g.placed[k] = ok;
+  if (g.kind === "body") { g.placed[k] = ok; if (ok && g.i === g.items.length - 1 && g.right === g.items.length) { P.flags = P.flags || {}; P.flags.body = true; } }
   mark(k, ok);
   render();
 }
@@ -636,7 +752,7 @@ app.addEventListener("click", e => {
     msg.textContent = "Tražim…";
     loadOnline(code).then(data => {
       if (!data) { msg.textContent = "Nisam našao taj kod. Proveri slova i brojeve."; return; }
-      mergeIn(data); P.code = code; save(); pushOnline(); render();
+      mergeIn(data); P.code = code; P.seen = earnedIds(); save(); pushOnline(); render();
       const m = document.getElementById("bk-msg"); if (m) { m.closest("details").open = true; m.textContent = "Gotovo! Napredak je vraćen."; }
     }).catch(() => { msg.textContent = "Nema interneta. Probaj ponovo kad se povežeš."; });
     return;
