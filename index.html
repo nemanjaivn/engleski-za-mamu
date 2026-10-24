@@ -289,7 +289,7 @@ const ALL = []; TOPICS.forEach(t => t.words.forEach(w => ALL.push({ key: t.id + 
 const BY_KEY = Object.fromEntries(ALL.map(w => [w.key, w]));
 const keysOf = id => ALL.filter(w => w.topic === id).map(w => w.key);
 const PHRASES = ALL.filter(w => /\s/.test(w.en) && !/^to /.test(w.en) && !/^one /.test(w.en));
-const DAILY_GOAL = 15;
+const DAILY_GOAL = 30;
 const DAYS = [0, 1, 3, 7, 14, 30]; // days until the next review, by box
 
 /* Body figure: where each part is (for the "put the word in its place" game) and where its label goes */
@@ -453,7 +453,7 @@ function home() {
           <li><b>Igra</b>: klikni pravu boju, broj, sliku ili deo tela.</li>
           <li><b>Kviz</b> i <b>Slušaj</b>: izaberi tačan odgovor.</li>
         </ul></li>
-      <li><b>Svaki dan</b> uradi bar 15 reči. Kad se gore pojavi dugme „Ponovi“, klikni ga: to su reči koje treba da osvežiš.</li>
+      <li><b>Svaki dan</b> uradi bar 30 reči. Kad se gore pojavi dugme „Ponovi“, klikni ga: to su reči koje treba da osvežiš.</li>
     </ol>
     <button class="big" data-introok>Razumem, krenimo</button>
   </section>` : "";
@@ -483,7 +483,7 @@ function home() {
       const ks = keysOf(t.id), k = ks.filter(learned).length;
       const peekPics = ks.map(x => BY_KEY[x].pic).filter(Boolean).slice(0, 4);
       return `<button class="lesson" data-topic="${t.id}"><span class="t">${esc(t.name)}</span>
-        <span class="peek">${peekPics.map(p => p[0] === "#" ? `<span class="sw" style="background:${p}"></span>` : p.startsWith("n:") ? `<b>${p.slice(2)}</b>` : p.startsWith("d:") ? `<b>${p.slice(2)}</b>` : `<span aria-hidden="true">${p}</span>`).join("")}${gameKind(t.id) ? ` <span class="n">· ima igru</span>` : ""}</span>
+        <span class="peek">${peekPics.map(p => p[0] === "#" ? `<span class="sw" style="background:${p}"></span>` : p.startsWith("n:") ? `<b>${p.slice(2)}</b>` : p.startsWith("d:") ? `<b>${p.slice(2)}</b>` : `<span aria-hidden="true">${p}</span>`).join("")}</span>
         <span class="n">${k} od ${ks.length} naučeno</span><span class="bar"><i style="width:${k / ks.length * 100}%"></i></span></button>`;
     }).join("")}</div>
   </section>
