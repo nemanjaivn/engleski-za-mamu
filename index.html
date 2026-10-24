@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FBFCFE">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232F5BD3'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'%3EEN%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon.png">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Engleski za mamu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&display=swap">
+<style>
+/* Layout: one calm column like a school notebook page (ruled lines, red margin); dark theme becomes a chalkboard. Big tap targets for a beginner. */
+:root {
+  --paper: #FBFCFE;
+  --ink: #1E2A44;
+  --muted: #5A6785;
+  --rule: #D9E5F5;
+  --margin: #D9534F;
+  --accent: #2F5BD3;
+  --accent-ink: #FFFFFF;
+  --card: #FFFFFF;
+  --line: #DCE3EF;
+  --good: #1F8A4C;
+  --good-bg: #E3F4EA;
+  --bad: #B93A32;
+  --bad-bg: #FBE7E5;
+  --skin: #F2C9A5;
+  --skin-line: #B9825B;
+  --shirt: #6F95E8;
+  --pants: #3E4C6E;
+  --hair: #5B3A22;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1C2A25; --ink: #F1F4EE; --muted: #B5C2B9; --rule: #26362F; --margin: #E58B7E;
+    --accent: #F2D36B; --accent-ink: #1C2A25; --card: #22332C; --line: #34473F;
+    --good: #7FD69E; --good-bg: #24402F; --bad: #F2948B; --bad-bg: #4A2A27;
+    --skin: #E9BE97; --skin-line: #F1E3D3; --shirt: #5F86D8; --pants: #8A97B8; --hair: #3A2416;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1C2A25; --ink: #F1F4EE; --muted: #B5C2B9; --rule: #26362F; --margin: #E58B7E;
+  --accent: #F2D36B; --accent-ink: #1C2A25; --card: #22332C; --line: #34473F;
+  --good: #7FD69E; --good-bg: #24402F; --bad: #F2948B; --bad-bg: #4A2A27;
+  --skin: #E9BE97; --skin-line: #F1E3D3; --shirt: #5F86D8; --pants: #8A97B8; --hair: #3A2416;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 39px, var(--rule) 39px 40px);
+  color: var(--ink);
+  font: 400 19px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.page { max-width: 720px; margin: 0 auto; position: relative; display: grid; gap: 22px; }
+.page::before { content: ""; position: fixed; top: 0; bottom: 0; left: max(10px, calc(50% - 380px)); width: 2px; background: var(--margin); opacity: .35; pointer-events: none; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 7vw, 40px); }
+h2 { font-size: 26px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back { background: none; border: 0; padding: 8px 0; font-size: 18px; color: var(--accent); font-weight: 700; min-height: 48px; }
+.slow { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 16px; font-size: 16px; min-height: 44px; }
+.slow[aria-pressed="true"] { border-color: var(--accent); }
+
+/* Today panel */
+.today { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
+.today-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+.stat b { font-family: var(--f-display); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { display: block; color: var(--muted); font-size: 16px; }
+.goal { height: 14px; border-radius: 999px; background: var(--rule); overflow: hidden; }
+.goal i { display: block; height: 100%; background: var(--good); border-radius: 999px; transition: width .4s; }
+.big { display: flex; width: 100%; justify-content: center; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 14px; padding: 16px 20px; font-size: 21px; font-weight: 700; min-height: 60px; }
+.big.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+
+/* Phrase of the day: the one bold moment, written like on the blackboard */
+.phrase { padding: 4px 0 4px 18px; border-left: 4px solid var(--margin); display: grid; gap: 4px; }
+.phrase .en { font-family: var(--f-display); font-size: clamp(26px, 6vw, 34px); font-weight: 600; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.phrase .sr { font-size: 19px; }
+.phrase .hint { color: var(--muted); font-size: 17px; }
+.label { font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--margin); }
+
+/* Lessons */
+.lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+.lesson { text-align: left; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 8px; min-height: 112px; }
+.lesson:hover { border-color: var(--accent); }
+.lesson .t { font-family: var(--f-display); font-size: 20px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.lesson .n { font-size: 15px; color: var(--muted); }
+.bar { height: 8px; background: var(--rule); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--good); }
+.peek { display: flex; gap: 4px; align-items: center; }
+.peek .sw { width: 16px; height: 16px; }
+
+/* Topic tabs */
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 5px; }
+.tabs button { border: 0; background: none; border-radius: 10px; padding: 10px 2px; font-weight: 700; font-size: 17px; min-height: 48px; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 480px) { .tabs button { font-size: 15px; } }
+
+/* Visual helpers: real colors, numerals, day tiles, pictures */
+.sw { display: inline-block; width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(0,0,0,.18); flex: none; }
+.vis { width: 52px; display: grid; place-items: center; font-size: 34px; line-height: 1; }
+.vis .num { font-family: var(--f-display); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; }
+.vis .day { font-family: var(--f-display); font-weight: 600; font-size: 16px; border: 2px solid var(--line); border-radius: 8px; padding: 4px 6px; background: var(--paper); }
+
+/* Word list */
+.words { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+.words li { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+.words li:first-child { border-top: 0; }
+.words .en { font-weight: 700; font-size: 21px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.words .sr { font-size: 18px; }
+.words .hint { color: var(--muted); font-size: 16px; }
+.words .w { min-width: 0; }
+.ok-mark { font-size: 14px; font-weight: 700; color: var(--good); background: var(--good-bg); border-radius: 999px; padding: 1px 8px; }
+.say { flex: none; width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--paper); display: inline-grid; place-items: center; }
+.say svg { width: 22px; height: 22px; }
+.say:hover { border-color: var(--accent); }
+.say.lg { width: 64px; height: 64px; }
+.say.lg svg { width: 30px; height: 30px; }
+
+/* Flashcard */
+.card { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 24px 20px; min-height: 240px; display: grid; gap: 12px; place-content: center; text-align: center; }
+.card .pic { font-size: 64px; line-height: 1; display: grid; place-items: center; }
+.card .pic .sw { width: 84px; height: 84px; }
+.card .pic .num { font-family: var(--f-display); font-weight: 600; font-size: 64px; }
+.card .pic .day { font-family: var(--f-display); font-weight: 600; font-size: 30px; border: 2px solid var(--line); border-radius: 12px; padding: 6px 14px; }
+.card .en { font-family: var(--f-display); font-size: clamp(32px, 9vw, 46px); font-weight: 600; overflow-wrap: anywhere; }
+.card .sr { font-size: 24px; font-weight: 700; }
+.card .hint { color: var(--muted); font-size: 19px; }
+.card .row { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.count { text-align: center; color: var(--muted); font-size: 16px; font-variant-numeric: tabular-nums; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pair .no { background: var(--bad-bg); color: var(--bad); }
+.pair .yes { background: var(--good-bg); color: var(--good); }
+
+/* Quiz */
+.options { display: grid; gap: 10px; }
+.opt { text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; font-size: 21px; min-height: 60px; }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt:disabled { cursor: default; }
+.right { border-color: var(--good) !important; background: var(--good-bg) !important; }
+.wrong { border-color: var(--bad) !important; background: var(--bad-bg) !important; }
+.feedback { font-weight: 700; font-size: 19px; text-align: center; min-height: 1.5em; }
+.feedback.ok { color: var(--good); }
+.feedback.no { color: var(--bad); }
+.done { text-align: center; display: grid; gap: 12px; padding: 12px 0; }
+.done .score { font-family: var(--f-display); font-size: 54px; font-weight: 600; }
+
+/* Game: tap the right thing */
+.prompt { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; text-align: center; }
+.prompt .en { font-family: var(--f-display); font-size: clamp(30px, 8vw, 42px); font-weight: 600; }
+.prompt .ask { width: 100%; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+.tile { background: var(--card); border: 2px solid var(--line); border-radius: 16px; min-height: 92px; display: grid; place-items: center; padding: 8px; }
+.tile:hover:not(:disabled) { border-color: var(--accent); }
+.tile:disabled { cursor: default; }
+.tile .sw { width: 58px; height: 58px; }
+.tile .emo { font-size: 46px; line-height: 1; }
+.tile .num { font-family: var(--f-display); font-weight: 600; font-size: 34px; font-variant-numeric: tabular-nums; }
+.tile .day { font-family: var(--f-display); font-weight: 600; font-size: 22px; }
+.tile .cap { font-size: 15px; font-weight: 700; margin-top: 4px; }
+
+/* Body game */
+.bodywrap { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 8px; }
+.bodywrap svg { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; }
+.fig { stroke: var(--skin-line); stroke-width: 2; }
+.zone { fill: transparent; cursor: pointer; }
+.zone.flash-ok { fill: rgba(31,138,76,.35); }
+.zone.flash-no { fill: rgba(185,58,50,.35); }
+.tag rect { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+.tag text { fill: var(--ink); font: 700 15px var(--f-body); }
+.tag.ok rect { fill: var(--good-bg); stroke: var(--good); }
+.tag.no rect { fill: var(--bad-bg); stroke: var(--bad); }
+.tag line { stroke: var(--muted); stroke-width: 1.5; }
+
+.note { font-size: 16px; color: var(--muted); }
+.intro { background: var(--card); border: 2px solid var(--accent); border-radius: 18px; padding: 20px; display: grid; gap: 12px; }
+.intro ol { margin: 0; padding-left: 24px; display: grid; gap: 10px; }
+.intro ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.intro .mini { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--line); border-radius: 50%; vertical-align: middle; }
+.intro .mini svg { width: 16px; height: 16px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.saved { font-size: 15px; color: var(--muted); }
+.saved.on { color: var(--good); font-weight: 700; }
+.backup { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.backup summary { cursor: pointer; font-weight: 700; min-height: 36px; display: flex; align-items: center; }
+.backup-in { display: grid; gap: 10px; padding-top: 10px; }
+.backup input { width: 100%; font: 700 22px/1.2 var(--f-body); letter-spacing: .15em; text-transform: uppercase; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px; }
+.code { letter-spacing: .08em; }
+.backup textarea { width: 100%; font: 14px/1.4 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; resize: vertical; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="page" id="app" aria-live="polite"></div>
+
+<script>
+/* ---------- Content: [English, Serbian, pronunciation in Serbian letters, picture]
+   picture: "#hex" = a real color, "n:12" = a numeral, "d:PON" = a day tile, anything else = an emoji ---------- */
+const TOPICS = [
+  { id: "pozdravi", name: "Pozdravi i fraze", words: [
+    ["Hello", "Zdravo", "helou", "👋"], ["Good morning", "Dobro jutro", "gud morning", "🌅"], ["Good evening", "Dobro veče", "gud ivning", "🌙"],
+    ["Goodbye", "Doviđenja", "gudbaj"], ["Please", "Molim (te)", "pliz"], ["Thank you", "Hvala", "tenk ju", "🙏"],
+    ["You're welcome", "Nema na čemu", "jur velkam"], ["Excuse me", "Izvinite", "ekskjuz mi"], ["Sorry", "Izvini, oprosti", "sori"],
+    ["Yes", "Da", "jes", "👍"], ["No", "Ne", "nou", "👎"], ["How are you?", "Kako si?", "hau ar ju"],
+    ["I'm fine, thanks", "Dobro sam, hvala", "ajm fajn, tenks", "😊"], ["My name is …", "Zovem se …", "maj nejm iz"], ["Nice to meet you", "Drago mi je", "najs tu mit ju", "🤝"]
+  ]},
+  { id: "brojevi", name: "Brojevi", words: [
+    ["one", "jedan", "van", "n:1"], ["two", "dva", "tu", "n:2"], ["three", "tri", "tri", "n:3"], ["four", "četiri", "for", "n:4"], ["five", "pet", "fajv", "n:5"],
+    ["six", "šest", "siks", "n:6"], ["seven", "sedam", "seven", "n:7"], ["eight", "osam", "ejt", "n:8"], ["nine", "devet", "najn", "n:9"], ["ten", "deset", "ten", "n:10"],
+    ["eleven", "jedanaest", "ileven", "n:11"], ["twelve", "dvanaest", "tvelv", "n:12"], ["twenty", "dvadeset", "tventi", "n:20"], ["fifty", "pedeset", "fifti", "n:50"],
+    ["one hundred", "sto", "van handred", "n:100"], ["one thousand", "hiljadu", "van tauzend", "n:1000"]
+  ]},
+  { id: "porodica", name: "Porodica", words: [
+    ["mother", "majka", "mader"], ["father", "otac", "fader"], ["son", "sin", "san"], ["daughter", "ćerka", "dotr"],
+    ["brother", "brat", "brader"], ["sister", "sestra", "sister"], ["husband", "muž", "hazbend"], ["wife", "žena (supruga)", "vajf"],
+    ["grandmother", "baka", "grenmader", "👵"], ["grandfather", "deka", "grenfader", "👴"], ["grandson", "unuk", "grensan"], ["granddaughter", "unuka", "grendotr"],
+    ["child", "dete", "čajld", "🧒"], ["children", "deca", "čildren"], ["family", "porodica", "femili", "👨‍👩‍👧‍👦"], ["friend", "prijatelj", "frend"]
+  ]},
+  { id: "dani", name: "Dani i vreme", words: [
+    ["Monday", "ponedeljak", "mandej", "d:PON"], ["Tuesday", "utorak", "tjuzdej", "d:UTO"], ["Wednesday", "sreda", "venzdej", "d:SRE"], ["Thursday", "četvrtak", "terzdej", "d:ČET"],
+    ["Friday", "petak", "frajdej", "d:PET"], ["Saturday", "subota", "seterdej", "d:SUB"], ["Sunday", "nedelja", "sandej", "d:NED"], ["today", "danas", "tudej"],
+    ["tomorrow", "sutra", "tumorou"], ["yesterday", "juče", "jesterdej"], ["week", "nedelja (7 dana)", "vik"], ["month", "mesec", "mant", "🗓️"],
+    ["year", "godina", "jir"], ["morning", "jutro", "morning", "🌄"], ["evening", "veče", "ivning", "🌆"], ["What time is it?", "Koliko je sati?", "vot tajm iz it", "🕒"]
+  ]},
+  { id: "boje", name: "Boje", words: [
+    ["red", "crvena", "red", "#D7263D"], ["blue", "plava", "blu", "#2E5EAA"], ["green", "zelena", "grin", "#2F9E44"], ["yellow", "žuta", "jelou", "#F6C90E"],
+    ["black", "crna", "blek", "#141414"], ["white", "bela", "vajt", "#FFFFFF"], ["brown", "braon", "braun", "#8B5A2B"], ["gray", "siva", "grej", "#9AA0A6"],
+    ["orange", "narandžasta", "orindž", "#F28C28"], ["pink", "roze", "pink", "#F49AC2"], ["purple", "ljubičasta", "perpl", "#7B4FA0"], ["color", "boja", "kaler", "🎨"]
+  ]},
+  { id: "hrana", name: "Hrana i piće", words: [
+    ["bread", "hleb", "bred", "🍞"], ["water", "voda", "voter", "💧"], ["coffee", "kafa", "kofi", "☕"], ["tea", "čaj", "ti", "🍵"], ["milk", "mleko", "milk", "🥛"],
+    ["meat", "meso", "mit", "🥩"], ["fish", "riba", "fiš", "🐟"], ["chicken", "piletina", "čiken", "🍗"], ["cheese", "sir", "čiz", "🧀"], ["egg", "jaje", "eg", "🥚"],
+    ["apple", "jabuka", "epl", "🍎"], ["soup", "supa", "sup", "🍲"], ["salad", "salata", "seled", "🥗"], ["sugar", "šećer", "šuger"], ["salt", "so", "solt", "🧂"],
+    ["I'm hungry", "Gladna sam", "ajm hangri"]
+  ]},
+  { id: "kuca", name: "Kuća", words: [
+    ["house", "kuća", "haus", "🏠"], ["apartment", "stan", "apartment", "🏢"], ["room", "soba", "rum"], ["kitchen", "kuhinja", "kičen", "🍳"],
+    ["bathroom", "kupatilo", "bat-rum", "🛁"], ["bedroom", "spavaća soba", "bed-rum"], ["door", "vrata", "dor", "🚪"], ["window", "prozor", "vindou", "🪟"],
+    ["table", "sto", "tejbl"], ["chair", "stolica", "čer", "🪑"], ["bed", "krevet", "bed", "🛏️"], ["key", "ključ", "ki", "🔑"], ["garden", "bašta", "garden", "🌷"]
+  ]},
+  { id: "kupovina", name: "U prodavnici", words: [
+    ["shop", "prodavnica", "šop", "🏪"], ["How much is it?", "Koliko košta?", "hau mač iz it"], ["I would like …", "Želela bih …", "aj vud lajk"],
+    ["money", "novac", "mani", "💵"], ["cheap", "jeftino", "čip"], ["expensive", "skupo", "ekspensiv", "💎"], ["bag", "kesa, torba", "beg", "🛍️"],
+    ["card", "kartica", "kard", "💳"], ["cash", "keš, gotovina", "keš"], ["receipt", "račun (isečak)", "risit", "🧾"], ["open", "otvoreno", "oupen"],
+    ["closed", "zatvoreno", "klouzd"], ["Can I pay by card?", "Mogu li da platim karticom?", "ken aj pej baj kard"]
+  ]},
+  { id: "putovanje", name: "Putovanje", words: [
+    ["airport", "aerodrom", "erport", "✈️"], ["train", "voz", "trejn", "🚆"], ["bus", "autobus", "bas", "🚌"], ["ticket", "karta", "tiket", "🎫"],
+    ["passport", "pasoš", "pasport", "🛂"], ["hotel", "hotel", "houtel", "🏨"], ["left", "levo", "left", "⬅️"], ["right", "desno", "rajt", "➡️"],
+    ["straight on", "pravo", "strejt on", "⬆️"], ["Where is …?", "Gde je …?", "ver iz"], ["I don't understand", "Ne razumem", "aj dont anderstend"],
+    ["Can you help me?", "Možete li da mi pomognete?", "ken ju help mi"], ["Speak slowly, please", "Govorite polako, molim vas", "spik slouli, pliz"]
+  ]},
+  { id: "zdravlje", name: "Telo i zdravlje", words: [
+    ["head", "glava", "hed", "🙂"], ["hair", "kosa", "her", "💇"], ["eye", "oko", "aj", "👁️"], ["ear", "uvo", "ir", "👂"], ["nose", "nos", "nouz", "👃"],
+    ["mouth", "usta", "maut", "👄"], ["tooth", "zub", "tut", "🦷"], ["arm", "ruka", "arm", "💪"], ["hand", "šaka", "hend", "✋"], ["stomach", "stomak", "stamak"],
+    ["leg", "noga", "leg", "🦵"], ["foot", "stopalo", "fut", "🦶"], ["back", "leđa", "bek"], ["doctor", "lekar", "dokter", "🧑‍⚕️"],
+    ["medicine", "lek", "medsin", "💊"], ["It hurts", "Boli me", "it herts", "🤕"], ["I feel sick", "Nije mi dobro", "aj fil sik", "🤒"]
+  ]},
+  { id: "vreme", name: "Vremenske prilike", words: [
+    ["weather", "vreme (napolju)", "veder"], ["sun", "sunce", "san", "☀️"], ["rain", "kiša", "rejn", "🌧️"], ["snow", "sneg", "snou", "❄️"], ["wind", "vetar", "vind", "💨"],
+    ["hot", "vruće", "hot", "🥵"], ["cold", "hladno", "kould", "🥶"], ["warm", "toplo", "vorm"], ["It's sunny", "Sunčano je", "its sani"],
+    ["It's raining", "Pada kiša", "its rejning"], ["umbrella", "kišobran", "ambrela", "☂️"], ["coat", "kaput", "kout", "🧥"]
+  ]},
+  { id: "glagoli", name: "Česti glagoli", words: [
+    ["to be", "biti", "tu bi"], ["to have", "imati", "tu hev"], ["to go", "ići", "tu gou", "🚶"], ["to eat", "jesti", "tu it", "🍽️"], ["to drink", "piti", "tu drink", "🥤"],
+    ["to sleep", "spavati", "tu slip", "😴"], ["to work", "raditi", "tu vork", "💼"], ["to speak", "govoriti", "tu spik", "🗣️"], ["to read", "čitati", "tu rid", "📖"],
+    ["to write", "pisati", "tu rajt", "✍️"], ["to buy", "kupiti", "tu baj", "🛒"], ["to like", "voleti, sviđati se", "tu lajk", "❤️"], ["to want", "hteti, želeti", "tu vont"],
+    ["to see", "videti", "tu si", "👀"], ["to know", "znati", "tu nou"]
+  ]}
+];
+const ALL = []; TOPICS.forEach(t => t.words.forEach(w => ALL.push({ key: t.id + ":" + w[0], topic: t.id, en: w[0], sr: w[1], hint: w[2], pic: w[3] || "" })));
+const BY_KEY = Object.fromEntries(ALL.map(w => [w.key, w]));
+const keysOf = id => ALL.filter(w => w.topic === id).map(w => w.key);
+const PHRASES = ALL.filter(w => /\s/.test(w.en) && !/^to /.test(w.en) && !/^one /.test(w.en));
+const DAILY_GOAL = 15;
+const DAYS = [0, 1, 3, 7, 14, 30]; // days until the next review, by box
+
+/* Body figure: where each part is (for the "put the word in its place" game) and where its label goes */
+const BODY = {
+  "zdravlje:head":    { zone: '<circle cx="150" cy="60" r="40"/>',                  pt: [184, 44],  lab: [214, 24, "start"] },
+  "zdravlje:hair":    { zone: '<path d="M110 52 Q112 14 150 16 Q188 14 190 52 Q170 32 150 34 Q130 32 110 52Z"/>', pt: [128, 30], lab: [86, 22, "end"] },
+  "zdravlje:eye":     { zone: '<circle cx="136" cy="59" r="11"/><circle cx="164" cy="59" r="11"/>', pt: [134, 59], lab: [86, 58, "end"] },
+  "zdravlje:ear":     { zone: '<circle cx="112" cy="64" r="13"/><circle cx="188" cy="64" r="13"/>', pt: [104, 70], lab: [86, 94, "end"] },
+  "zdravlje:nose":    { zone: '<circle cx="150" cy="72" r="9"/>',                   pt: [156, 72],  lab: [214, 66, "start"] },
+  "zdravlje:mouth":   { zone: '<ellipse cx="150" cy="89" rx="15" ry="8"/>',         pt: [162, 90],  lab: [214, 104, "start"] },
+  "zdravlje:arm":     { zone: '<path d="M116 118 L92 220" stroke-width="28" stroke="transparent" fill="none"/><path d="M184 118 L208 220" stroke-width="28" stroke="transparent" fill="none"/>', pt: [104, 168], lab: [86, 160, "end"] },
+  "zdravlje:hand":    { zone: '<circle cx="90" cy="234" r="18"/><circle cx="210" cy="234" r="18"/>', pt: [80, 244], lab: [86, 278, "end"] },
+  "zdravlje:stomach": { zone: '<ellipse cx="150" cy="178" rx="30" ry="28"/>',       pt: [172, 182], lab: [214, 182, "start"] },
+  "zdravlje:leg":     { zone: '<rect x="122" y="214" width="28" height="134" rx="10"/><rect x="150" y="214" width="28" height="134" rx="10"/>', pt: [134, 300], lab: [86, 318, "end"] },
+  "zdravlje:foot":    { zone: '<ellipse cx="130" cy="362" rx="24" ry="14"/><ellipse cx="170" cy="362" rx="24" ry="14"/>', pt: [186, 362], lab: [214, 360, "start"] }
+};
+const FIGURE = `
+  <g class="fig">
+    <rect x="126" y="212" width="20" height="140" rx="9" fill="var(--pants)"/>
+    <rect x="154" y="212" width="20" height="140" rx="9" fill="var(--pants)"/>
+    <ellipse cx="131" cy="360" rx="19" ry="10" fill="var(--skin)"/>
+    <ellipse cx="169" cy="360" rx="19" ry="10" fill="var(--skin)"/>
+    <path d="M116 118 L92 222" stroke="var(--shirt)" stroke-width="17" stroke-linecap="round" fill="none"/>
+    <path d="M184 118 L208 222" stroke="var(--shirt)" stroke-width="17" stroke-linecap="round" fill="none"/>
+    <circle cx="90" cy="234" r="12" fill="var(--skin)"/>
+    <circle cx="210" cy="234" r="12" fill="var(--skin)"/>
+    <rect x="112" y="104" width="76" height="118" rx="24" fill="var(--shirt)"/>
+    <rect x="142" y="92" width="16" height="16" fill="var(--skin)"/>
+    <circle cx="113" cy="64" r="8" fill="var(--skin)"/>
+    <circle cx="187" cy="64" r="8" fill="var(--skin)"/>
+    <circle cx="150" cy="60" r="36" fill="var(--skin)"/>
+    <path d="M114 56 Q116 20 150 22 Q184 20 186 56 Q170 36 150 38 Q130 36 114 56Z" fill="var(--hair)" stroke="none"/>
+    <circle cx="136" cy="60" r="4" fill="var(--ink)" stroke="none"/>
+    <circle cx="164" cy="60" r="4" fill="var(--ink)" stroke="none"/>
+    <path d="M150 64 L146 76 L153 76" fill="none"/>
+    <path d="M139 86 Q150 95 161 86" fill="none" stroke-linecap="round"/>
+  </g>`;
+
+/* ---------- Progress (saved on this device) ---------- */
+const KEY = "engleski-za-mamu-v3";
+let P = { cards: {}, days: {}, slow: true };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") P = Object.assign(P, s); } catch (e) {}
+/* Progress is saved on this device and, automatically, online under a short personal code (no account needed). */
+const SUPA = "https://fszezlruwuyzdquomijs.supabase.co/rest/v1/rpc/", SUPA_KEY = "sb_publishable_1xLOxtE1-5PyZW0zdrjoBg_6000CtCx";
+const CODE_CHARS = "ABCDEFGHJKMNPRSTUVWXYZ23456789";
+let online = "pending"; // pending | ok | off
+function newCode() { let s = ""; const r = new Uint32Array(6); crypto.getRandomValues(r); r.forEach(n => s += CODE_CHARS[n % CODE_CHARS.length]); return s; }
+async function rpc(fn, body) {
+  const res = await fetch(SUPA + fn, { method: "POST", headers: { apikey: SUPA_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(fn + " " + res.status);
+  return res.json();
+}
+function mergeIn(o) {
+  if (!o || typeof o !== "object") return;
+  for (const [k, c] of Object.entries(o.cards || {})) {
+    if (!c || typeof c !== "object") continue;
+    const m = P.cards[k];
+    if (!m || (c.b || 0) > (m.b || 0) || ((c.b || 0) === (m.b || 0) && (c.due || 0) > (m.due || 0))) P.cards[k] = { b: c.b || 0, due: c.due || 0 };
+  }
+  for (const [d, n] of Object.entries(o.days || {})) P.days[d] = Math.max(P.days[d] || 0, Number(n) || 0);
+}
+let writing = false, again = false, timer = null;
+async function pushOnline() {
+  if (!P.code) return;
+  if (writing) { again = true; return; }
+  writing = true;
+  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days } }); if (online !== "ok") { online = "ok"; render(); } }
+  catch (e) { if (online !== "off") { online = "off"; render(); } }
+  finally { writing = false; if (again) { again = false; pushOnline(); } }
+}
+const save = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+  clearTimeout(timer); timer = setTimeout(pushOnline, 1000);
+};
+async function loadOnline(code) {
+  const data = await rpc("eng_load", { p_code: code });
+  return data && typeof data === "object" ? data : null;
+}
+(async () => {
+  if (!P.code) { P.code = newCode(); try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} }
+  try { mergeIn(await loadOnline(P.code)); try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} } catch (e) {}
+  await pushOnline();
+  render();
+})();
+window.addEventListener("pagehide", () => { if (timer) { clearTimeout(timer); pushOnline(); } });
+const todayKey = (d = new Date()) => d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+const box = k => (P.cards[k] && P.cards[k].b) || 0;
+const learned = k => box(k) >= 3;
+function mark(k, ok) {
+  const c = P.cards[k] || { b: 0, due: 0 };
+  c.b = ok ? Math.min(5, c.b + 1) : 1;
+  c.due = Date.now() + (ok ? DAYS[c.b] * 864e5 : 10 * 6e4);
+  P.cards[k] = c;
+  const t = todayKey(); P.days[t] = (P.days[t] || 0) + 1;
+  save();
+}
+function streak() {
+  let n = 0; const d = new Date();
+  if (!P.days[todayKey(d)]) d.setDate(d.getDate() - 1);
+  while (P.days[todayKey(d)]) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+const dueKeys = () => ALL.filter(w => P.cards[w.key] && P.cards[w.key].b > 0 && P.cards[w.key].due <= Date.now()).map(w => w.key);
+
+/* ---------- Speech ---------- */
+const canSpeak = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+let voice = null;
+function pickVoice() {
+  if (!canSpeak) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)/i.test(v.lang));
+  voice = vs.find(v => /Samantha|Google US English|Microsoft (Aria|Jenny|Zira)/i.test(v.name)) || vs.find(v => /en.US/i.test(v.lang)) || vs.find(v => /en.GB/i.test(v.lang)) || vs[0] || null;
+}
+if (canSpeak) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text) {
+  if (!canSpeak) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/…/g, ""));
+    u.lang = voice ? voice.lang : "en-US"; if (voice) u.voice = voice;
+    u.rate = P.slow ? 0.7 : 0.95;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const sayBtn = (text, lg) => canSpeak ? `<button class="say${lg ? " lg" : ""}" data-say="${esc(text)}" aria-label="Poslušaj: ${esc(text)}">${SPEAKER}</button>` : "";
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function pic(p, alt) {
+  if (!p) return "";
+  if (p[0] === "#") return `<span class="sw" style="background:${p}" role="img" aria-label="${esc(alt || "boja")}"></span>`;
+  if (p.startsWith("n:")) return `<span class="num">${Number(p.slice(2)).toLocaleString("sr-RS")}</span>`;
+  if (p.startsWith("d:")) return `<span class="day">${p.slice(2)}</span>`;
+  return `<span class="emo" aria-hidden="true">${p}</span>`;
+}
+const app = document.getElementById("app");
+let V = { screen: "home" };
+function go(v) { V = v; render(); window.scrollTo({ top: 0 }); }
+const gameKind = id => id === "zdravlje" ? "body" : keysOf(id).filter(k => BY_KEY[k].pic && !/[\s?]/.test(BY_KEY[k].en.replace(/^to /, ""))).length >= 5 ? "tiles" : null;
+
+/* ---------- Screens ---------- */
+function topBar(backTo) {
+  return `<div class="top">${backTo ? `<button class="back" data-go="${backTo}">← Nazad</button>` : `<h1>Engleski za mamu</h1>`}
+    ${canSpeak ? `<button class="slow" data-slow aria-pressed="${!!P.slow}">${P.slow ? "Izgovor: polako" : "Izgovor: normalno"}</button>` : ""}</div>`;
+}
+function home() {
+  const done = P.days[todayKey()] || 0, due = dueKeys().length, s = streak();
+  const known = ALL.filter(w => learned(w.key)).length;
+  const ph = PHRASES[Math.floor(Date.now() / 864e5) % PHRASES.length];
+  const next = TOPICS.find(t => keysOf(t.id).some(k => !learned(k))) || TOPICS[0];
+  const intro = !P.intro ? `<section class="intro" aria-label="Kako se koristi">
+    <h2>Dobrodošla! Evo kako radi</h2>
+    <ol>
+      <li><b>Izaberi lekciju</b> dole, na primer <i>Boje</i> ili <i>Brojevi</i>.</li>
+      <li><b>Klikni na zvučnik</b> ${canSpeak ? `<span class="mini">${SPEAKER}</span>` : ""} da čuješ reč. Dugme „Izgovor: polako“ menja brzinu.</li>
+      <li><b>U svakoj lekciji ima više načina:</b>
+        <ul>
+          <li><b>Reči</b>: pogledaj i poslušaj sve reči.</li>
+          <li><b>Kartice</b>: vidiš reč, pa sama kažeš da li je znaš.</li>
+          <li><b>Igra</b>: klikni pravu boju, broj, sliku ili deo tela.</li>
+          <li><b>Kviz</b> i <b>Slušaj</b>: izaberi tačan odgovor.</li>
+        </ul></li>
+      <li><b>Svaki dan</b> uradi bar 15 reči. Kad se gore pojavi dugme „Ponovi“, klikni ga: to su reči koje treba da osvežiš.</li>
+    </ol>
+    <button class="big" data-introok>Razumem, krenimo</button>
+  </section>` : "";
+  return `${topBar()}
+  ${intro}
+  <p class="muted">Malo svaki dan. Klikni na zvučnik da čuješ kako se izgovara. <button class="linkish" data-intro>Kako se koristi?</button></p>
+  <section class="today" aria-label="Danas">
+    <div class="today-row">
+      <div class="stat"><b>${done}</b><span>od ${DAILY_GOAL} danas</span></div>
+      <div class="stat"><b>${s}</b><span>${s === 1 ? "dan zaredom" : "dana zaredom"}</span></div>
+      <div class="stat"><b>${known}</b><span>naučenih reči od ${ALL.length}</span></div>
+    </div>
+    <div class="goal" role="img" aria-label="Današnji cilj: ${Math.min(done, DAILY_GOAL)} od ${DAILY_GOAL}"><i style="width:${Math.min(100, done / DAILY_GOAL * 100)}%"></i></div>
+    ${due ? `<button class="big" data-review>Ponovi ${due} ${due === 1 ? "reč" : "reči"}</button>`
+          : `<button class="big" data-topic="${next.id}" data-tab="cards">Nastavi: ${esc(next.name)}</button>`}
+    <p class="saved ${online === "ok" ? "on" : ""}">${online === "ok" ? `Napredak se čuva automatski. Tvoj kod je <b class="code">${P.code}</b>, zapiši ga negde.` : online === "off" ? "Trenutno nema interneta. Napredak se čuva na telefonu i poslaće se kad se internet vrati." : "Čuvam napredak…"}</p>
+  </section>
+  <section class="phrase" aria-label="Fraza dana">
+    <span class="label">Fraza dana</span>
+    <div class="en">${esc(ph.en)} ${sayBtn(ph.en)}</div>
+    <div class="sr">${esc(ph.sr)}</div>
+    <div class="hint">Izgovor: ${esc(ph.hint)}</div>
+  </section>
+  <section style="display:grid;gap:12px">
+    <h2>Lekcije</h2>
+    <div class="lessons">${TOPICS.map(t => {
+      const ks = keysOf(t.id), k = ks.filter(learned).length;
+      const peekPics = ks.map(x => BY_KEY[x].pic).filter(Boolean).slice(0, 4);
+      return `<button class="lesson" data-topic="${t.id}"><span class="t">${esc(t.name)}</span>
+        <span class="peek">${peekPics.map(p => p[0] === "#" ? `<span class="sw" style="background:${p}"></span>` : p.startsWith("n:") ? `<b>${p.slice(2)}</b>` : p.startsWith("d:") ? `<b>${p.slice(2)}</b>` : `<span aria-hidden="true">${p}</span>`).join("")}${gameKind(t.id) ? ` <span class="n">· ima igru</span>` : ""}</span>
+        <span class="n">${k} od ${ks.length} naučeno</span><span class="bar"><i style="width:${k / ks.length * 100}%"></i></span></button>`;
+    }).join("")}</div>
+  </section>
+  ${canSpeak ? "" : `<p class="note">Ovaj pregledač ne može da izgovara reči. Probaj u Chrome-u ili Safari-ju.</p>`}
+  <details class="backup">
+    <summary>Novi telefon ili računar?</summary>
+    <div class="backup-in">
+      <p class="note">Tvoj kod je <b class="code">${esc(P.code || "")}</b>. Na drugom uređaju otvori ovu stranicu, ovde ukucaj taj kod i sve što si naučila se vrati.</p>
+      <label class="note" for="bk-in">Ukucaj kod sa drugog uređaja</label>
+      <input id="bk-in" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="npr. K7MP4Z">
+      <button class="big ghost" data-bkload>Vrati moj napredak</button>
+      <p class="note" id="bk-msg" role="status"></p>
+    </div>
+  </details>`;
+}
+function topic() {
+  const t = TOPICS.find(x => x.id === V.topic), tab = V.tab || "words";
+  const tabs = [["words", "Reči"], ["cards", "Kartice"]].concat(gameKind(t.id) ? [["game", "Igra"]] : []).concat([["quiz", "Kviz"], ["listen", "Slušaj"]]);
+  let body = "";
+  if (tab === "words") body = `<ul class="words">${keysOf(t.id).map(k => { const w = BY_KEY[k]; return `<li>
+      <div class="vis">${pic(w.pic, w.en)}</div>
+      <div class="w"><div class="en">${esc(w.en)}${learned(k) ? `<span class="ok-mark">znam</span>` : ""}</div><div class="sr">${esc(w.sr)}</div><div class="hint">${esc(w.hint)}</div></div>
+      ${sayBtn(w.en)}</li>`; }).join("")}</ul>
+    <p class="note">Kartice i kviz te prvo pitaju ono što još ne znaš.${gameKind(t.id) ? " Probaj i Igru!" : ""}</p>`;
+  else if (tab === "cards") body = cardsView();
+  else if (tab === "game") body = gameView();
+  else body = quizView();
+  return `${topBar("home")}<h1>${esc(t.name)}</h1>
+    <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${tab === k}" data-tab="${k}" data-topic="${t.id}">${l}</button>`).join("")}</div>${body}`;
+}
+
+/* Flashcards */
+function startDeck(keys) { V.deck = keys; V.pos = 0; V.flip = false; V.right = 0; }
+function cardsView() {
+  if (!V.deck) { const keys = keysOf(V.topic); startDeck(keys.filter(k => !learned(k)).concat(keys.filter(learned)).slice(0, 10)); }
+  return deckBody();
+}
+const doneBox = (right, total, good) => `<div class="done"><div class="score">${right} / ${total}</div>
+  <p>${right === total ? "Bravo! Sve znaš." : right >= total - 1 ? "Odlično!" : good}</p>
+  <button class="big" data-again>Još jednom</button><button class="big ghost" data-go="home">Na početnu</button></div>`;
+function deckBody() {
+  if (V.pos >= V.deck.length) return doneBox(V.right, V.deck.length, "Dobro je! Ono što ne znaš videćeš ponovo uskoro.");
+  const w = BY_KEY[V.deck[V.pos]];
+  return `<p class="count">Kartica ${V.pos + 1} od ${V.deck.length}</p>
+    <div class="card">${w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${esc(w.en)}</div>${sayBtn(w.en)}</div>
+      ${V.flip ? `<div class="sr">${esc(w.sr)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div>` : `<p class="muted">Da li znaš šta znači?</p>`}</div>
+    ${V.flip ? `<div class="pair"><button class="big no" data-know="0">Ne znam još</button><button class="big yes" data-know="1">Znam</button></div>`
+             : `<button class="big" data-flip>Pokaži prevod</button>`}`;
+}
+
+/* Quiz and listening: 8 questions, 4 options each */
+function makeQuiz(listen) {
+  const pool = keysOf(V.topic);
+  const order = shuffle(pool.filter(k => !learned(k))).concat(shuffle(pool.filter(learned))).slice(0, 8);
+  V.qs = order.map(k => ({ k, opts: shuffle([k, ...shuffle(pool.filter(x => x !== k)).slice(0, 3)]) }));
+  V.qi = 0; V.right = 0; V.answered = null; V.listen = listen;
+}
+function quizView() {
+  const listen = V.tab === "listen";
+  if (!V.qs || V.listen !== listen) makeQuiz(listen);
+  if (V.qi >= V.qs.length) return doneBox(V.right, V.qs.length, "Svaki put sve bolje. Probaj ponovo.");
+  const q = V.qs[V.qi], w = BY_KEY[q.k], a = V.answered;
+  const head = listen
+    ? `<div class="card"><p class="muted">Poslušaj i izaberi reč koju čuješ</p><div class="row">${sayBtn(w.en, true)}</div>${a ? `<div class="sr">${esc(w.sr)}</div>` : ""}</div>`
+    : `<div class="card">${a && w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${esc(w.en)}</div>${sayBtn(w.en)}</div><p class="muted">Šta ovo znači?</p></div>`;
+  const opts = q.opts.map(k => {
+    const o = BY_KEY[k], cls = a ? (k === q.k ? "right" : k === a ? "wrong" : "") : "";
+    return `<button class="opt ${cls}" data-ans="${esc(k)}" ${a ? "disabled" : ""}>${esc(listen ? o.en : o.sr)}</button>`;
+  }).join("");
+  const fb = a ? (a === q.k ? `<p class="feedback ok">Tačno!</p>` : `<p class="feedback no">Tačan odgovor: ${esc(listen ? w.en : w.sr)}</p>`) : `<p class="feedback"></p>`;
+  return `<p class="count">Pitanje ${V.qi + 1} od ${V.qs.length}</p>${head}<div class="options">${opts}</div>${fb}
+    ${a ? `<button class="big" data-next>Dalje</button>` : ""}`;
+}
+
+/* Game: hear/see the English word, tap the right color, number, day, picture, or place on the body */
+function makeGame() {
+  const kind = gameKind(V.topic);
+  const pool = kind === "body" ? Object.keys(BODY) : keysOf(V.topic).filter(k => BY_KEY[k].pic && !/[\s?]/.test(BY_KEY[k].en.replace(/^to /, "")) && (V.topic !== "boje" || BY_KEY[k].pic[0] === "#"));
+  const items = shuffle(pool).slice(0, kind === "body" ? pool.length : 8);
+  V.g = { kind, pool, items, i: 0, right: 0, answered: null, placed: {}, opts: null };
+  newRound();
+}
+function newRound() {
+  const g = V.g; if (g.i >= g.items.length) return;
+  const k = g.items[g.i];
+  if (g.kind === "tiles") {
+    const whole = V.topic === "boje" || V.topic === "dani";
+    g.opts = whole ? (g.opts && g.i ? g.opts : shuffle(g.pool)) : shuffle([k, ...shuffle(g.pool.filter(x => x !== k)).slice(0, 5)]);
+  }
+}
+function gameView() {
+  if (!V.g || V.g.topic !== V.topic) { makeGame(); V.g.topic = V.topic; }
+  const g = V.g;
+  if (g.i >= g.items.length) {
+    return (g.kind === "body" ? bodySvg(true) : "") + doneBox(g.right, g.items.length, "Dobra vežba! Probaj ponovo za bolji rezultat.");
+  }
+  const k = g.items[g.i], w = BY_KEY[k], a = g.answered;
+  const ask = g.kind === "body" ? "Klikni na sliku: gde je to?" : V.topic === "boje" ? "Klikni na tu boju" : V.topic === "brojevi" ? "Klikni na taj broj" : V.topic === "dani" ? "Klikni na taj dan" : "Klikni na pravu sliku";
+  const prompt = `<p class="count">${g.i + 1} od ${g.items.length}</p>
+    <div class="prompt"><span class="en">${esc(w.en)}</span>${sayBtn(w.en, true)}<span class="ask">${ask}</span></div>`;
+  const fb = a ? (a === k ? `<p class="feedback ok">Tačno! ${esc(w.en)} = ${esc(w.sr)}</p>` : `<p class="feedback no">Ne baš. ${esc(w.en)} = ${esc(w.sr)}</p>`) : `<p class="feedback"></p>`;
+  const next = a ? `<button class="big" data-gnext>Dalje</button>` : "";
+  if (g.kind === "body") return prompt + bodySvg(false) + fb + next;
+  const tiles = `<div class="tiles">${g.opts.map(o => {
+    const ow = BY_KEY[o], cls = a ? (o === k ? "right" : o === a ? "wrong" : "") : "";
+    return `<button class="tile ${cls}" data-pick="${esc(o)}" ${a ? "disabled" : ""} aria-label="Izbor">${pic(ow.pic, "")}${a && (o === k || o === a) ? `<span class="cap">${esc(ow.en)}</span>` : ""}</button>`;
+  }).join("")}</div>`;
+  return prompt + tiles + fb + next;
+}
+function bodySvg(all) {
+  const g = V.g, k = g.items[g.i], a = g.answered;
+  const zones = Object.entries(BODY).map(([key, b], n) => {
+    const cls = a && !all ? (key === k ? " flash-ok" : key === a ? " flash-no" : "") : "";
+    return `<g class="zone${cls}" data-pick="${key}" role="button" tabindex="${all || a ? -1 : 0}" aria-label="Mesto ${n + 1}">${b.zone}</g>`;
+  }).join("");
+  const tags = Object.entries(BODY).filter(([key]) => all || key in g.placed).map(([key, b]) => {
+    const w = BY_KEY[key], [lx, ly, anchor] = b.lab, wpx = w.en.length * 9 + 16;
+    const rx = anchor === "end" ? lx - wpx : lx;
+    const st = key in g.placed ? (g.placed[key] ? " ok" : " no") : "";
+    return `<g class="tag${st}"><line x1="${anchor === "end" ? lx : lx}" y1="${ly}" x2="${b.pt[0]}" y2="${b.pt[1]}"/>
+      <rect x="${rx}" y="${ly - 13}" width="${wpx}" height="26" rx="8"/><text x="${rx + 8}" y="${ly + 5}">${esc(w.en)}</text></g>`;
+  }).join("");
+  return `<div class="bodywrap"><svg viewBox="0 0 300 390" role="img" aria-label="Crtež čoveka">${FIGURE}${zones}${tags}</svg></div>`;
+}
+
+function review() {
+  return `${topBar("home")}<h1>Ponavljanje</h1><p class="muted">Reči koje je vreme da ponoviš, iz svih lekcija.</p>${deckBody()}`;
+}
+function render() {
+  app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : home();
+}
+
+/* ---------- Events ---------- */
+function pickAnswer(key) {
+  const g = V.g; if (!g || g.answered || g.i >= g.items.length) return;
+  const k = g.items[g.i], ok = key === k;
+  g.answered = key; if (ok) g.right++;
+  if (g.kind === "body") g.placed[k] = ok;
+  mark(k, ok);
+  render();
+}
+app.addEventListener("click", e => {
+  const z = e.target.closest("[data-pick]");
+  if (z) { pickAnswer(z.dataset.pick); return; }
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.say) { speak(b.dataset.say); return; }
+  if (b.hasAttribute("data-bkload")) {
+    const msg = document.getElementById("bk-msg"), code = document.getElementById("bk-in").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!/^[A-Z2-9]{6}$/.test(code)) { msg.textContent = "Kod ima 6 znakova, slova i brojeve. Proveri da li je dobro ukucan."; return; }
+    msg.textContent = "Tražim…";
+    loadOnline(code).then(data => {
+      if (!data) { msg.textContent = "Nisam našao taj kod. Proveri slova i brojeve."; return; }
+      mergeIn(data); P.code = code; save(); pushOnline(); render();
+      const m = document.getElementById("bk-msg"); if (m) { m.closest("details").open = true; m.textContent = "Gotovo! Napredak je vraćen."; }
+    }).catch(() => { msg.textContent = "Nema interneta. Probaj ponovo kad se povežeš."; });
+    return;
+  }
+  if (b.hasAttribute("data-slow")) { P.slow = !P.slow; save(); render(); return; }
+  if (b.hasAttribute("data-introok")) { P.intro = true; save(); render(); window.scrollTo({ top: 0 }); return; }
+  if (b.hasAttribute("data-intro")) { P.intro = false; save(); render(); window.scrollTo({ top: 0 }); return; }
+  if (b.dataset.go) { go({ screen: b.dataset.go }); return; }
+  if (b.hasAttribute("data-review")) { V = { screen: "review" }; startDeck(shuffle(dueKeys()).slice(0, 15)); render(); window.scrollTo({ top: 0 }); return; }
+  if (b.dataset.topic) { go({ screen: "topic", topic: b.dataset.topic, tab: b.dataset.tab || "words" }); return; }
+  if (b.hasAttribute("data-flip")) { V.flip = true; speak(BY_KEY[V.deck[V.pos]].en); render(); return; }
+  if (b.dataset.know) { const ok = b.dataset.know === "1"; mark(V.deck[V.pos], ok); if (ok) V.right++; V.pos++; V.flip = false; render(); return; }
+  if (b.dataset.ans) {
+    if (V.answered) return;
+    const q = V.qs[V.qi], ok = b.dataset.ans === q.k; V.answered = b.dataset.ans; if (ok) V.right++; mark(q.k, ok);
+    if (!V.listen) speak(BY_KEY[q.k].en);
+    render(); return;
+  }
+  if (b.hasAttribute("data-next")) { V.qi++; V.answered = null; render(); if (V.listen && V.qi < V.qs.length) speak(BY_KEY[V.qs[V.qi].k].en); return; }
+  if (b.hasAttribute("data-gnext")) { const g = V.g; g.i++; g.answered = null; newRound(); render(); if (g.i < g.items.length) speak(BY_KEY[g.items[g.i]].en); return; }
+  if (b.hasAttribute("data-again")) {
+    if (V.screen === "review") startDeck(shuffle(dueKeys().length ? dueKeys() : V.deck).slice(0, 15));
+    else { V.deck = null; V.qs = null; V.g = null; }
+    render(); return;
+  }
+});
+app.addEventListener("keydown", e => {
+  const z = e.target.closest && e.target.closest("[data-pick]");
+  if (z && (e.key === "Enter" || e.key === " ") && z.tagName !== "BUTTON") { e.preventDefault(); pickAnswer(z.dataset.pick); }
+});
+render();
+</script>
+
+</body>
+</html>
