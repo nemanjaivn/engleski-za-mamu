@@ -77,6 +77,7 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .back { background: none; border: 0; padding: 8px 0; font-size: 18px; color: var(--accent); font-weight: 700; min-height: 48px; }
 .slow { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 16px; font-size: 16px; min-height: 44px; }
 .slow[aria-pressed="true"] { border-color: var(--accent); }
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Today panel */
 .today { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
@@ -569,7 +570,7 @@ function pickVoice() {
 }
 if (canSpeak) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 function speak(text) {
-  if (!canSpeak) return;
+  if (!canSpeak || P.mute) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text.replace(/…/g, ""));
@@ -579,7 +580,7 @@ function speak(text) {
   } catch (e) {}
 }
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
-const sayBtn = (text, lg) => canSpeak ? `<button class="say${lg ? " lg" : ""}" data-say="${esc(text)}" aria-label="Poslušaj: ${esc(text)}">${SPEAKER}</button>` : "";
+const sayBtn = (text, lg) => canSpeak && !P.mute ? `<button class="say${lg ? " lg" : ""}" data-say="${esc(text)}" aria-label="Poslušaj: ${esc(text)}">${SPEAKER}</button>` : "";
 
 /* ---------- Helpers ---------- */
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -598,7 +599,7 @@ const gameKind = id => id === "zdravlje" ? "body" : keysOf(id).filter(k => BY_KE
 
 /* ---------- Screens ---------- */
 function topBar(backTo) {
-  const pill = canSpeak ? `<button class="slow" data-slow aria-pressed="${!!P.slow}">${P.slow ? "Izgovor: polako" : "Izgovor: normalno"}</button>` : "";
+  const pill = canSpeak ? `<span class="pills">${P.mute ? "" : `<button class="slow" data-slow aria-pressed="${!!P.slow}">${P.slow ? "Izgovor: polako" : "Izgovor: normalno"}</button>`}<button class="slow" data-mute aria-pressed="${!!P.mute}" aria-label="${P.mute ? "Uključi zvuk" : "Isključi zvuk"}">${P.mute ? "🔇 Bez zvuka" : "🔊 Zvuk"}</button></span>` : "";
   if (backTo) return `<div class="top"><button class="back" data-go="${backTo}">← Nazad</button>${pill}</div>`;
   const tabs = [["home", "Učenje"], ["talk", "Razgovor"], ["progress", "Napredak"]];
   return `<div class="top"><div class="brand"><h1>Engleski</h1><span>za mamu</span></div>${pill}</div>
@@ -713,7 +714,7 @@ function progressView() {
 }
 function topic() {
   const t = TOPICS.find(x => x.id === V.topic), tab = V.tab || "words";
-  const tabs = [["words", "Reči"], ["cards", "Kartice"]].concat(gameKind(t.id) ? [["game", "Igra"]] : []).concat([["quiz", "Kviz"], ["listen", "Slušaj"]]);
+  const tabs = [["words", "Reči"], ["cards", "Kartice"]].concat(gameKind(t.id) ? [["game", "Igra"]] : []).concat([["quiz", "Kviz"]]).concat(P.mute ? [] : [["listen", "Slušaj"]]);
   let body = "";
   if (tab === "words") body = `<ul class="words">${keysOf(t.id).map(k => { const w = BY_KEY[k]; return `<li>
       <div class="vis">${pic(w.pic, w.en)}</div>
@@ -947,6 +948,7 @@ app.addEventListener("click", e => {
     return;
   }
   if (b.hasAttribute("data-slow")) { P.slow = !P.slow; save(); render(); return; }
+  if (b.hasAttribute("data-mute")) { P.mute = !P.mute; if (P.mute && canSpeak) { try { speechSynthesis.cancel(); } catch (e) {} } if (P.mute && V.tab === "listen") { V.tab = "words"; V.qs = null; } save(); render(); return; }
   if (b.hasAttribute("data-introok")) { P.intro = true; save(); render(); window.scrollTo({ top: 0 }); return; }
   if (b.hasAttribute("data-intro")) { P.intro = false; save(); render(); window.scrollTo({ top: 0 }); return; }
   if (b.dataset.go) { go({ screen: b.dataset.go }); return; }
