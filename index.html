@@ -447,7 +447,7 @@ function mergeIn(o) {
   for (const [k, c] of Object.entries(o.cards || {})) {
     if (!c || typeof c !== "object") continue;
     const m = P.cards[k];
-    if (!m || (c.b || 0) > (m.b || 0) || ((c.b || 0) === (m.b || 0) && (c.due || 0) > (m.due || 0))) P.cards[k] = { b: c.b || 0, due: c.due || 0 };
+    if (!m || (c.b || 0) > (m.b || 0) || ((c.b || 0) === (m.b || 0) && (c.due || 0) > (m.due || 0))) P.cards[k] = { b: c.b || 0, due: c.due || 0, u: c.u };
   }
   for (const [d, n] of Object.entries(o.days || {})) P.days[d] = Math.max(P.days[d] || 0, Number(n) || 0);
   P.flags = Object.assign({}, o.flags || {}, P.flags || {});
@@ -487,9 +487,13 @@ const box = k => (P.cards[k] && P.cards[k].b) || 0;
 const learned = k => box(k) >= 3;
 function mark(k, ok) {
   const lvBefore = levelOf(knownCount()).i, seenBefore = new Set(P.seen || []);
-  const c = P.cards[k] || { b: 0, due: 0 };
-  c.b = ok ? Math.min(5, c.b + 1) : 1;
-  c.due = Date.now() + (ok ? DAYS[c.b] * 864e5 : 10 * 6e4);
+  /* A word moves up at most one box per day, and only when it is (nearly) due: knowing it twice in the same sitting
+     is practice, not proof it has stuck. A miss brings it back in 10 minutes and again tomorrow. */
+  const c = P.cards[k] || { b: 0, due: 0 }, today = todayKey();
+  const canStep = !c.b || (c.u !== today && c.due <= Date.now() + 6 * 36e5);
+  if (!ok) { c.b = 1; c.due = Date.now() + 10 * 6e4; c.u = today; }
+  else if (canStep) { c.b = Math.min(5, c.b + 1); c.due = Date.now() + DAYS[c.b] * 864e5; c.u = today; }
+  else { const tm = new Date(); tm.setHours(28, 0, 0, 0); c.due = Math.max(c.due || 0, tm.getTime()); }
   P.cards[k] = c;
   const t = todayKey(); P.days[t] = (P.days[t] || 0) + 1;
   /* collect what to celebrate */
@@ -758,7 +762,7 @@ function topic() {
 }
 
 /* Flashcards */
-function startDeck(keys) { V.deck = keys; V.pos = 0; V.flip = false; V.right = 0; }
+function startDeck(keys) { V.deck = keys; V.pos = 0; V.flip = false; V.right = 0; V.redo = new Set(); }
 function cardsView() {
   if (!V.deck) { const keys = keysOf(V.topic); startDeck(keys.filter(k => !learned(k)).concat(keys.filter(learned)).slice(0, 10)); }
   return deckBody();
@@ -781,7 +785,7 @@ function makeQuiz(listen) {
   const pool = keysOf(V.topic);
   const order = shuffle(pool.filter(k => !learned(k))).concat(shuffle(pool.filter(learned))).slice(0, 8);
   V.qs = order.map(k => ({ k, opts: shuffle([k, ...shuffle(pool.filter(x => x !== k)).slice(0, 3)]) }));
-  V.qi = 0; V.right = 0; V.answered = null; V.listen = listen;
+  V.qi = 0; V.right = 0; V.answered = null; V.listen = listen; V.redo = new Set();
 }
 function quizView() {
   const listen = V.tab === "listen";
@@ -1099,10 +1103,12 @@ app.addEventListener("click", e => {
   if (b.hasAttribute("data-review")) { V = { screen: "review" }; startDeck(shuffle(dueKeys()).slice(0, 15)); render(); window.scrollTo({ top: 0 }); return; }
   if (b.dataset.topic) { go({ screen: "topic", topic: b.dataset.topic, tab: b.dataset.tab || "words" }); return; }
   if (b.hasAttribute("data-flip")) { V.flip = true; speak(BY_KEY[V.deck[V.pos]].en); render(); return; }
-  if (b.dataset.know) { const ok = b.dataset.know === "1"; mark(V.deck[V.pos], ok); if (ok) V.right++; V.pos++; V.flip = false; render(); return; }
+  if (b.dataset.know) { const ok = b.dataset.know === "1", k = V.deck[V.pos]; mark(k, ok);
+    if (!ok) { V.redo = V.redo || new Set(); if (!V.redo.has(k)) { V.redo.add(k); V.deck = V.deck.concat([k]); } } if (ok) V.right++; V.pos++; V.flip = false; render(); return; }
   if (b.dataset.ans) {
     if (V.answered) return;
     const q = V.qs[V.qi], ok = b.dataset.ans === q.k; V.answered = b.dataset.ans; if (ok) V.right++; mark(q.k, ok);
+    if (!ok) { V.redo = V.redo || new Set(); if (!V.redo.has(q.k)) { V.redo.add(q.k); V.qs.push({ k: q.k, opts: shuffle(q.opts) }); } }
     if (!V.listen) speak(BY_KEY[q.k].en);
     render(); return;
   }
