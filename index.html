@@ -171,6 +171,16 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .feedback { font-weight: 700; font-size: 19px; text-align: center; min-height: 1.5em; }
 .feedback.ok { color: var(--good); }
 .feedback.no { color: var(--bad); }
+/* After every answer, right or wrong, the word and its meaning are shown together and she taps "Dalje" herself */
+.fbox { border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; text-align: center; border: 2px solid var(--line); background: var(--card); }
+.fbox.ok { border-color: var(--good); background: var(--good-bg); }
+.fbox.no { border-color: var(--bad); background: var(--bad-bg); }
+.fbox .v { font-weight: 700; font-size: 19px; }
+.fbox.ok .v { color: var(--good); }
+.fbox.no .v { color: var(--bad); }
+.fbox.bud .v { color: var(--muted); }
+.fbox .pl { font-size: 23px; line-height: 1.3; }
+.fbox .pl b { font-family: var(--f-display); }
 .done { text-align: center; display: grid; gap: 12px; padding: 12px 0; }
 .done .score { font-family: var(--f-display); font-size: 54px; font-weight: 600; }
 
@@ -762,6 +772,9 @@ function topic() {
 }
 
 /* Flashcards */
+/* after an answer, bring the meaning box and the "Dalje" button into view on small phones */
+const showNext = () => setTimeout(() => { const n = document.querySelector("[data-next],[data-bnext],[data-gnext]"); if (n && n.getBoundingClientRect().bottom > innerHeight) n.scrollIntoView({ block: "end", behavior: "smooth" }); }, 60);
+const answerBox = (cls, head, w) => `<div class="fbox ${cls}" role="status"><span class="v">${head}</span><div class="pl"><b>${gl(w.en)}</b> = ${esc(w.sr)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div></div>`;
 function startDeck(keys) { V.deck = keys; V.pos = 0; V.flip = false; V.right = 0; V.redo = new Set(); }
 function cardsView() {
   if (!V.deck) { const keys = keysOf(V.topic); startDeck(keys.filter(k => !learned(k)).concat(keys.filter(learned)).slice(0, 10)); }
@@ -799,7 +812,7 @@ function quizView() {
     const o = BY_KEY[k], cls = a ? (k === q.k ? "right" : k === a ? "wrong" : "") : "";
     return `<button class="opt ${cls}" data-ans="${esc(k)}" ${a ? "disabled" : ""}>${esc(listen ? o.en : o.sr)}</button>`;
   }).join("");
-  const fb = a ? (a === q.k ? `<p class="feedback ok">Tačno!</p>` : `<p class="feedback no">Tačan odgovor: ${esc(listen ? w.en : w.sr)}</p>`) : `<p class="feedback"></p>`;
+  const fb = a ? (a === q.k ? answerBox("ok", "Tačno! ✓", w) : answerBox("no", "Tačan odgovor je:", w)) : `<p class="feedback"></p>`;
   return `<p class="count">Pitanje ${V.qi + 1} od ${V.qs.length}</p>${head}<div class="options">${opts}</div>${fb}
     ${a ? `<button class="big" data-next>Dalje</button>` : ""}`;
 }
@@ -830,7 +843,7 @@ function gameView() {
   const ask = g.kind === "body" ? "Klikni na sliku: gde je to?" : V.topic === "boje" ? "Klikni na tu boju" : V.topic === "brojevi" ? "Klikni na taj broj" : V.topic === "dani" ? "Klikni na taj dan" : "Klikni na pravu sliku";
   const prompt = `<p class="count">${g.i + 1} od ${g.items.length}</p>
     <div class="prompt"><span class="en">${esc(w.en)}</span>${sayBtn(w.en, true)}<span class="ask">${ask}</span></div>`;
-  const fb = a ? (a === k ? `<p class="feedback ok">Tačno! ${esc(w.en)} = ${esc(w.sr)}</p>` : `<p class="feedback no">Ne baš. ${esc(w.en)} = ${esc(w.sr)}</p>`) : `<p class="feedback"></p>`;
+  const fb = a ? (a === k ? answerBox("ok", "Tačno! ✓", w) : answerBox("no", "Ne baš. Tačno je:", w)) : `<p class="feedback"></p>`;
   const next = a ? `<button class="big" data-gnext>Dalje</button>` : "";
   if (g.kind === "body") return prompt + bodySvg(false) + fb + next;
   const tiles = `<div class="tiles">${g.opts.map(o => {
@@ -905,7 +918,7 @@ function bastaView() {
     const cls = a ? (k === q.k ? "right" : k === a ? "wrong" : "") : "";
     return `<button class="opt ${cls}" data-bans="${n}" ${a ? "disabled" : ""}>${esc(BY_KEY[k][field])}</button>`;
   }).join("");
-  const fb = a ? (a === q.k ? `<p class="feedback ok">Nov cvet! 🌸</p>` : `<p class="feedback" style="color:var(--muted)">Mali pupoljak za sada 🌱 ${esc(w.en)} = ${esc(w.sr)}</p>`) : `<p class="feedback"></p>`;
+  const fb = a ? (a === q.k ? answerBox("ok", "Tačno! Nov cvet 🌸", w) : answerBox("bud", "Mali pupoljak za sada 🌱 Evo kako ide:", w)) : `<p class="feedback"></p>`;
   return `${topBar("home")}<h1>Tvoja bašta</h1>${gardenStrip(t)}${head}<div class="options">${opts}</div>${fb}
     ${a ? `<button class="big" data-bnext>${t.i + 1 < t.qs.length ? "Dalje" : "Pogledaj baštu 🌷"}</button>` : ""}`;
 }
@@ -1059,7 +1072,7 @@ function pickAnswer(key) {
   g.answered = key; if (ok) g.right++;
   if (g.kind === "body") { g.placed[k] = ok; if (ok && g.i === g.items.length - 1 && g.right === g.items.length) { P.flags = P.flags || {}; P.flags.body = true; } }
   mark(k, ok);
-  render();
+  render(); showNext(); speak(BY_KEY[k].en);
 }
 app.addEventListener("click", e => {
   const gwEl = e.target.closest(".gw"); if (gwEl) { if (popFor === gwEl) hidePop(); else showPop(gwEl); return; }
@@ -1095,8 +1108,8 @@ app.addEventListener("click", e => {
     const t = V.t; if (!t || t.answered) return;
     const q = t.qs[t.i], pickK = q.opts[+b.dataset.bans], ok = pickK === q.k;
     t.answered = pickK; t.log.push(ok); if (ok) t.right++; mark(q.k, ok);
-    if (q.kind !== "listen") speak(BY_KEY[q.k].en);
-    render(); return;
+    speak(BY_KEY[q.k].en);
+    render(); showNext(); return;
   }
   if (b.hasAttribute("data-bnext")) { const t = V.t; t.i++; t.answered = null; render(); window.scrollTo({ top: 0 }); if (t.i < t.qs.length && t.qs[t.i].kind === "listen") speak(BY_KEY[t.qs[t.i].k].en); return; }
   if (b.hasAttribute("data-bfix")) { const keys = V.t.qs.filter((q, i) => !V.t.log[i]).map(q => q.k); V = { screen: "review" }; startDeck(shuffle(keys)); render(); window.scrollTo({ top: 0 }); return; }
@@ -1109,8 +1122,8 @@ app.addEventListener("click", e => {
     if (V.answered) return;
     const q = V.qs[V.qi], ok = b.dataset.ans === q.k; V.answered = b.dataset.ans; if (ok) V.right++; mark(q.k, ok);
     if (!ok) { V.redo = V.redo || new Set(); if (!V.redo.has(q.k)) { V.redo.add(q.k); V.qs.push({ k: q.k, opts: shuffle(q.opts) }); } }
-    if (!V.listen) speak(BY_KEY[q.k].en);
-    render(); return;
+    speak(BY_KEY[q.k].en);
+    render(); showNext(); return;
   }
   if (b.hasAttribute("data-next")) { V.qi++; V.answered = null; render(); if (V.listen && V.qi < V.qs.length) speak(BY_KEY[V.qs[V.qi].k].en); return; }
   if (b.hasAttribute("data-gnext")) { const g = V.g; g.i++; g.answered = null; newRound(); render(); if (g.i < g.items.length) speak(BY_KEY[g.items[g.i]].en); return; }
