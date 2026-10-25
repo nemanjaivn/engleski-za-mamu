@@ -281,6 +281,28 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .composer textarea { width: 100%; min-height: 60px; max-height: 150px; resize: vertical; font: 400 20px/1.4 var(--f-body); color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; }
 .composer .big { width: auto; padding: 0 22px; }
 .typing { color: var(--muted); font-style: italic; }
+/* Bašta: the 5-day garden check-up */
+.garden-btn { flex-direction: column; gap: 2px; text-align: center; }
+.garden-btn span { font-size: 16px; font-weight: 400; color: var(--muted); }
+.gstrip { display: grid; gap: 6px; }
+.gplot { min-height: 34px; font-size: 24px; line-height: 1.3; display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
+.gplot .seed { color: var(--muted); font-size: 20px; }
+.gprog { height: 6px; background: var(--rule); border-radius: 999px; overflow: hidden; }
+.gprog i { display: block; height: 100%; background: var(--gold); }
+.gpanel { background: linear-gradient(to bottom, var(--card) 55%, color-mix(in srgb, #7FB069 22%, var(--card))); border: 1.5px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 10px; text-align: center; }
+.gline { font-family: var(--f-display); font-size: 24px; line-height: 1.25; margin: 0; }
+.garden { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; font-size: 30px; line-height: 1.2; padding: 6px 0 10px; border-bottom: 3px solid color-mix(in srgb, #7FB069 55%, transparent); }
+.garden.lg { font-size: 38px; }
+.garden .fl { display: inline-block; transform-origin: 50% 100%; animation: sway 3.2s ease-in-out infinite; }
+.garden .bud { display: inline-block; opacity: .85; }
+@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.beds { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; }
+.beds > div { display: grid; gap: 2px; font-size: 17px; }
+.beds.hist > div { grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: start; }
+.bedrow { font-size: 22px; letter-spacing: 1px; line-height: 1.35; overflow-wrap: anywhere; }
+.budlist { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+.budlist li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--rule); font-size: 19px; }
+.budlist li:first-child { border-top: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -408,7 +430,7 @@ const FIGURE = `
 
 /* ---------- Progress (saved on this device) ---------- */
 const KEY = "engleski-za-mamu-v3";
-let P = { cards: {}, days: {}, slow: true, flags: {}, seen: null };
+let P = { cards: {}, days: {}, slow: true, flags: {}, seen: null, tests: [] };
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") P = Object.assign(P, s); } catch (e) {}
 /* Progress is saved on this device and, automatically, online under a short personal code (no account needed). */
 const SUPA = "https://fszezlruwuyzdquomijs.supabase.co/rest/v1/rpc/", SUPA_KEY = "sb_publishable_1xLOxtE1-5PyZW0zdrjoBg_6000CtCx";
@@ -431,13 +453,14 @@ function mergeIn(o) {
   P.flags = Object.assign({}, o.flags || {}, P.flags || {});
   if (o.start && (!P.start || o.start < P.start)) P.start = o.start;
   if (Array.isArray(o.seen)) P.seen = Array.from(new Set((P.seen || []).concat(o.seen)));
+  if (Array.isArray(o.tests)) { const m = new Map((P.tests || []).map(t => [t.t, t])); o.tests.forEach(t => { if (t && t.t && !m.has(t.t)) m.set(t.t, t); }); P.tests = Array.from(m.values()).sort((a, b) => a.t - b.t); }
 }
 let writing = false, again = false, timer = null;
 async function pushOnline() {
   if (!P.code) return;
   if (writing) { again = true; return; }
   writing = true;
-  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days, flags: P.flags, seen: P.seen || [], start: P.start } }); if (online !== "ok") { online = "ok"; render(); } }
+  try { await rpc("eng_save", { p_code: P.code, p_data: { cards: P.cards, days: P.days, flags: P.flags, seen: P.seen || [], start: P.start, tests: P.tests || [] } }); if (online !== "ok") { online = "ok"; render(); } }
   catch (e) { if (online !== "off") { online = "off"; render(); } }
   finally { writing = false; if (again) { again = false; pushOnline(); } }
 }
@@ -517,6 +540,8 @@ const BADGES = [
   { id: "lesson", icon: "🏅", name: "Prva lekcija", desc: "Cela jedna lekcija naučena", test: () => TOPICS.some(t => stars(t.id) === 3) },
   { id: "colors", icon: "🎨", name: "Sve boje", desc: "Naučila sve boje", test: () => stars("boje") === 3 },
   { id: "body", icon: "🧍", name: "Ceo čovek", desc: "Sve delove tela postavila tačno u jednoj igri", test: () => !!(P.flags && P.flags.body) },
+  { id: "basta1", icon: "🌷", name: "Prva bašta", desc: "Odgajila prvu baštu", test: () => (P.tests || []).length > 0 },
+  { id: "basta90", icon: "💐", name: "Pun cvet", desc: "Bašta skoro sva u cveću", test: () => (P.tests || []).some(t => t.total && t.score / t.total >= 0.9) },
   { id: "all", icon: "👑", name: "Sve reči", desc: "Naučila svaku reč u aplikaciji", test: () => knownCount() >= ALL.length }
 ];
 const earnedIds = () => BADGES.filter(b => b.test() || (P.seen || []).includes(b.id)).map(b => b.id);
@@ -649,6 +674,7 @@ function home() {
           : `<button class="big" data-topic="${next.id}" data-tab="cards">Nastavi: ${esc(next.name)}</button>`}
     ${savedLine()}
   </section>
+  ${bastaReady() ? `<button class="big ghost garden-btn" data-basta>🌷 Tvoja bašta je spremna<span>Nekoliko lakih pitanja o onome što već znaš</span></button>` : ""}
   <section class="phrase" aria-label="Fraza dana">
     <span class="label">Fraza dana</span>
     <div class="en"><span>${gl(ph.en)}</span> ${sayBtn(ph.en)}</div>
@@ -697,6 +723,7 @@ function progressView() {
     <div class="cal">${cal}</div>
     <p class="note"><span class="key some"></span> učila &nbsp; <span class="key full"></span> ispunila cilj (30 reči). Jedan propušten dan nedeljno ne prekida niz.</p>
   </section>
+  ${bastaHistory()}
   <section style="display:grid;gap:12px" aria-label="Moje značke">
     <h2>Moje značke <span class="muted" style="font-size:18px">${earned.size} od ${BADGES.length}</span></h2>
     <div class="badges">${BADGES.map(b => `<div class="badge${earned.has(b.id) ? " got" : ""}"><span class="bi" aria-hidden="true">${b.icon}</span><b>${b.name}</b><span>${b.desc}</span></div>`).join("")}</div>
@@ -824,13 +851,119 @@ function bodySvg(all) {
   return `<div class="bodywrap"><svg viewBox="0 0 300 390" role="img" aria-label="Crtež čoveka">${FIGURE}${zones}${tags}</svg></div>`;
 }
 
+/* ---------- Bašta: every 5 days, a relaxed check-up of things she already practised. No numbers, only flowers. ---------- */
+const BASTA_EVERY = 5, BASTA_SIZE = 15, BASTA_MIN_SEEN = 15, DAY_MS = 864e5;
+const seenKeys = () => ALL.filter(w => P.cards[w.key] && P.cards[w.key].b > 0).map(w => w.key);
+function bastaDaysLeft() {
+  const t = P.tests || [], from = t.length ? t[t.length - 1].t : (P.start ? new Date(P.start + "T00:00:00").getTime() : Date.now());
+  return Math.max(0, Math.ceil((from + BASTA_EVERY * DAY_MS - Date.now()) / DAY_MS));
+}
+const bastaReady = () => seenKeys().length >= BASTA_MIN_SEEN && bastaDaysLeft() === 0;
+const FLOWERS = ["🌷", "🌸", "🌼", "🌻", "🌺", "🪻"];
+const flower = i => FLOWERS[i % FLOWERS.length];
+function bastaOpts(k, field) {
+  const w = BY_KEY[k], seen = seenKeys(), used = new Set([w[field]]);
+  const pool = shuffle(keysOf(w.topic).filter(x => x !== k)).concat(shuffle(seen.filter(x => BY_KEY[x].topic !== w.topic)));
+  const out = [k];
+  for (const x of pool) { if (out.length >= 4) break; if (!used.has(BY_KEY[x][field])) { used.add(BY_KEY[x][field]); out.push(x); } }
+  return shuffle(out);
+}
+function startBasta() {
+  const seen = seenKeys(), picked = new Set();
+  const add = list => list.forEach(k => { if (picked.size < BASTA_SIZE && !picked.has(k)) picked.add(k); });
+  add(seen.filter(learned).sort((a, b) => P.cards[a].due - P.cards[b].due).slice(0, 9)); // learned a while ago: does it still stick?
+  add(shuffle(seen.filter(k => !learned(k))).slice(0, 4));                              // still settling in
+  add(shuffle(seen));
+  const listen = canSpeak && !P.mute;
+  const qs = shuffle(Array.from(picked)).map((k, i) => {
+    const kind = i % 4 === 3 ? (listen ? "listen" : "en") : i % 4 === 1 ? "en" : "sr";
+    return { k, kind, opts: bastaOpts(k, kind === "sr" ? "sr" : "en") };
+  });
+  V = { screen: "basta", t: { qs, i: 0, right: 0, log: [], answered: null, saved: false } };
+}
+function gardenStrip(t) {
+  const grown = t.log.map((ok, i) => `<span class="${ok ? "fl" : "bud"}">${ok ? flower(i) : "🌱"}</span>`).join("");
+  return `<div class="gstrip" aria-label="Tvoja bašta do sada"><span class="gplot">${grown}<span class="seed" aria-hidden="true">·</span></span><span class="gprog" aria-hidden="true"><i style="width:${t.i / t.qs.length * 100}%"></i></span></div>`;
+}
+const gardenBed = log => `<div class="garden lg" role="img" aria-label="Bašta sa cvećem i pupoljcima">${log.map((ok, i) => `<span class="${ok ? "fl" : "bud"}" style="animation-delay:${(i % 7) * 0.18}s">${ok ? flower(i) : "🌱"}</span>`).join("")}</div>`;
+function bastaView() {
+  const t = V.t;
+  if (t.i >= t.qs.length) return topBar("home") + bastaResult(t);
+  const q = t.qs[t.i], w = BY_KEY[q.k], a = t.answered;
+  if (q.kind === "listen" && (P.mute || !canSpeak)) q.kind = "en"; // sound was switched off mid-garden
+  const head = q.kind === "listen"
+    ? `<div class="card"><p class="muted">Poslušaj i izaberi reč koju čuješ</p><div class="row">${sayBtn(w.en, true)}</div>${a ? `<div class="sr">${esc(w.sr)}</div>` : ""}</div>`
+    : q.kind === "en"
+    ? `<div class="card">${a && w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en" style="font-family:var(--f-body)">${esc(w.sr)}</div></div><p class="muted">Kako se ovo kaže na engleskom?</p></div>`
+    : `<div class="card">${a && w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${esc(w.en)}</div>${sayBtn(w.en)}</div><p class="muted">Šta ovo znači?</p></div>`;
+  const field = q.kind === "sr" ? "sr" : "en";
+  const opts = q.opts.map((k, n) => {
+    const cls = a ? (k === q.k ? "right" : k === a ? "wrong" : "") : "";
+    return `<button class="opt ${cls}" data-bans="${n}" ${a ? "disabled" : ""}>${esc(BY_KEY[k][field])}</button>`;
+  }).join("");
+  const fb = a ? (a === q.k ? `<p class="feedback ok">Nov cvet! 🌸</p>` : `<p class="feedback" style="color:var(--muted)">Mali pupoljak za sada 🌱 ${esc(w.en)} = ${esc(w.sr)}</p>`) : `<p class="feedback"></p>`;
+  return `${topBar("home")}<h1>Tvoja bašta</h1>${gardenStrip(t)}${head}<div class="options">${opts}</div>${fb}
+    ${a ? `<button class="big" data-bnext>${t.i + 1 < t.qs.length ? "Dalje" : "Pogledaj baštu 🌷"}</button>` : ""}`;
+}
+function petals() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.createElement("canvas"); cv.className = "confetti";
+  const W = cv.width = innerWidth, H = cv.height = innerHeight; document.body.appendChild(cv);
+  const ctx = cv.getContext("2d"), cols = ["#F4A7B9", "#F7C6D4", "#FBE3A1", "#F2B8C6", "#FFFFFF", "#E98FA8"];
+  const bits = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -20 - Math.random() * H * .6, vx: (Math.random() - .5) * 1.2, vy: 1 + Math.random() * 1.6, r: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6, s: Math.random() * .06 + .02 }));
+  const t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    bits.forEach(b => { b.x += b.vx + Math.sin(t / 600 + b.a) * .6; b.y += b.vy; b.a += b.s; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a); ctx.fillStyle = b.c; ctx.globalAlpha = .9; ctx.beginPath(); ctx.ellipse(0, 0, b.r, b.r / 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+    if (t - t0 < 4200) requestAnimationFrame(frame); else cv.remove();
+  })(t0);
+}
+function bastaResult(t) {
+  if (!t.saved) {
+    t.saved = true;
+    const before = new Set(P.seen || []);
+    P.tests = P.tests || []; P.tests.push({ t: Date.now(), d: isoDay(new Date()), score: t.right, total: t.qs.length, g: t.log.map(ok => ok ? 1 : 0).join("") });
+    const fresh = earnedIds().filter(id => !before.has(id));
+    P.seen = Array.from(new Set((P.seen || []).concat(fresh)));
+    if (fresh.length) CELEB.push(fresh.map(id => { const b = BADGES.find(x => x.id === id); return `Nova značka: ${b.icon} <b>${b.name}</b>`; }));
+    save(); setTimeout(petals, 300);
+  }
+  const share = t.right / t.qs.length;
+  const line = share >= 0.9 ? "Tvoja bašta je u punom cvetu!" : share >= 0.7 ? "Kakva lepa bašta. Još par pupoljaka se otvara." : share >= 0.4 ? "Bašta ti raste. Puno pupoljaka, i svi procvetaju uz malo zalivanja." : "Danas si posadila puno novih pupoljaka. Malo ih zalij i procvetaće.";
+  const by = {}; t.qs.forEach((q, i) => { const tp = BY_KEY[q.k].topic; (by[tp] = by[tp] || []).push({ ok: t.log[i], i }); });
+  const beds = Object.entries(by), name = id => (TOPICS.find(x => x.id === id) || {}).name || id;
+  const toWater = beds.filter(([, v]) => v.some(x => !x.ok)).sort((a, b) => b[1].filter(x => !x.ok).length - a[1].filter(x => !x.ok).length);
+  const buds = t.qs.filter((q, i) => !t.log[i]).map(q => BY_KEY[q.k]);
+  return `<div class="gpanel"><span class="label">Tvoja bašta</span>
+      ${gardenBed(t.log)}
+      <p class="gline">${line}</p>
+      <p class="note">Svaki cvet je nešto što si stvarno zapamtila. Pupoljcima 🌱 treba još malo vremena.</p></div>
+    ${beds.length > 1 ? `<section style="display:grid;gap:8px"><h2>Cvetne leje</h2><div class="beds">${beds.map(([k, v]) => `<div><span>${esc(name(k))}</span><span class="bedrow">${v.map(x => x.ok ? flower(x.i) : "🌱").join("")}</span></div>`).join("")}</div></section>` : ""}
+    ${toWater.length ? `<section style="display:grid;gap:8px"><h2>Pupoljci za zalivanje</h2><p class="note">Par minuta ovde i procvetaće.</p>${toWater.slice(0, 3).map(([k]) => `<button class="big ghost" data-topic="${k}" data-tab="cards">💧 ${esc(name(k))}</button>`).join("")}</section>` : ""}
+    ${buds.length ? `<section style="display:grid;gap:8px"><h2>Tvoji pupoljci</h2><p class="note">Ove reči će ti se vraćati u ponavljanju, da procvetaju.</p><ul class="budlist">${buds.map(w => `<li><span><b>${esc(w.en)}</b> · ${esc(w.sr)}</span>${sayBtn(w.en)}</li>`).join("")}</ul></section>
+      <button class="big" data-bfix>💧 Zalij pupoljke sada</button>` : ""}
+    <button class="big ghost" data-go="home">Nazad na učenje</button>
+    <p class="note" style="text-align:center">Sledeća bašta raste za ${BASTA_EVERY} dana 🌱</p>`;
+}
+function bastaHistory() {
+  const list = (P.tests || []).slice(-6).reverse(), left = bastaDaysLeft(), seen = seenKeys().length;
+  const status = bastaReady() ? `<button class="big" data-basta>🌷 Odgajaj današnju baštu</button>`
+    : seen < BASTA_MIN_SEEN ? `<p class="note">Prva bašta se pojavljuje kad još malo vežbaš. Samo nastavi!</p>`
+    : `<p class="note">Sledeća bašta raste za ${left} ${left === 1 ? "dan" : "dana"} 🌱</p>`;
+  const bed = x => x.g ? x.g.split("").map((c, i) => c === "1" ? flower(i) : "🌱").join("") : FLOWERS.slice(0, 3).join("");
+  return `<section style="display:grid;gap:10px" aria-label="Moje bašte"><h2>Moje bašte</h2>
+    ${list.length ? `<div class="beds hist">${list.map(x => { const d = new Date(x.t); return `<div><span>${d.getDate()}. ${d.getMonth() + 1}.</span><span class="bedrow">${bed(x)}</span></div>`; }).join("")}</div>`
+      : `<p class="note">Na svakih ${BASTA_EVERY} dana, nekoliko lakih pitanja o onome što već znaš izraste u malu baštu. Bez ocena, samo cveće.</p>`}
+    ${status}</section>`;
+}
+
 function review() {
   return `${topBar("home")}<h1>Ponavljanje</h1><p class="muted">Reči koje je vreme da ponoviš, iz svih lekcija.</p>${deckBody()}`;
 }
 function render() {
   setTimeout(showCeleb, 50);
   hidePop();
-  app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : V.screen === "talk" ? (V.chat ? chatView() : talkHome()) : V.screen === "progress" ? progressView() : home();
+  app.innerHTML = V.screen === "topic" ? topic() : V.screen === "review" ? review() : V.screen === "basta" ? bastaView() : V.screen === "talk" ? (V.chat ? chatView() : talkHome()) : V.screen === "progress" ? progressView() : home();
 }
 
 /* ---------- Word meanings: tap (phone) or hover (computer) ---------- */
@@ -953,6 +1086,16 @@ app.addEventListener("click", e => {
   if (b.hasAttribute("data-introok")) { P.intro = true; save(); render(); window.scrollTo({ top: 0 }); return; }
   if (b.hasAttribute("data-intro")) { P.intro = false; save(); render(); window.scrollTo({ top: 0 }); return; }
   if (b.dataset.go) { go({ screen: b.dataset.go }); return; }
+  if (b.hasAttribute("data-basta")) { startBasta(); render(); window.scrollTo({ top: 0 }); const q = V.t.qs[0]; if (q.kind === "listen") speak(BY_KEY[q.k].en); return; }
+  if (b.dataset.bans !== undefined) {
+    const t = V.t; if (!t || t.answered) return;
+    const q = t.qs[t.i], pickK = q.opts[+b.dataset.bans], ok = pickK === q.k;
+    t.answered = pickK; t.log.push(ok); if (ok) t.right++; mark(q.k, ok);
+    if (q.kind !== "listen") speak(BY_KEY[q.k].en);
+    render(); return;
+  }
+  if (b.hasAttribute("data-bnext")) { const t = V.t; t.i++; t.answered = null; render(); window.scrollTo({ top: 0 }); if (t.i < t.qs.length && t.qs[t.i].kind === "listen") speak(BY_KEY[t.qs[t.i].k].en); return; }
+  if (b.hasAttribute("data-bfix")) { const keys = V.t.qs.filter((q, i) => !V.t.log[i]).map(q => q.k); V = { screen: "review" }; startDeck(shuffle(keys)); render(); window.scrollTo({ top: 0 }); return; }
   if (b.hasAttribute("data-review")) { V = { screen: "review" }; startDeck(shuffle(dueKeys()).slice(0, 15)); render(); window.scrollTo({ top: 0 }); return; }
   if (b.dataset.topic) { go({ screen: "topic", topic: b.dataset.topic, tab: b.dataset.tab || "words" }); return; }
   if (b.hasAttribute("data-flip")) { V.flip = true; speak(BY_KEY[V.deck[V.pos]].en); render(); return; }
