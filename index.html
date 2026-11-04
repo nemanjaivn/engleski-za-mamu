@@ -314,6 +314,17 @@ button:focus-visible, a:focus-visible, [data-pick]:focus-visible { outline: 3px 
 .budlist li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--rule); font-size: 19px; }
 .budlist li:first-child { border-top: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.mic-b { color: var(--gold); }
+.mic-b.on { background: var(--gold); color: #fff; border-color: var(--gold); animation: mpulse 1.2s infinite; }
+@keyframes mpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(184,134,43,.5); } 50% { box-shadow: 0 0 0 10px rgba(184,134,43,0); } }
+.bigmic { width: 96px; height: 96px; border-radius: 50%; border: 0; background: var(--gold); color: #fff; display: grid; place-items: center; margin: 6px auto; cursor: pointer; }
+.bigmic svg { width: 42px; height: 42px; }
+.bigmic.on { animation: mpulse 1.2s infinite; }
+.live { text-align: center; color: var(--muted); min-height: 1.5em; font-style: italic; }
+u.miss { text-decoration: none; background: var(--bad-bg); color: var(--bad); border-radius: 4px; padding: 0 3px; }
+.mtoast { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(92vw, 520px); z-index: 60; box-shadow: 0 10px 30px rgba(0,0,0,.18); border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .mic-b.on, .bigmic.on { animation: none; } }
+.bigmic { background: var(--gold); }
 </style>
 
 </head>
@@ -622,6 +633,78 @@ function speak(text) {
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 const sayBtn = (text, lg) => canSpeak && !P.mute ? `<button class="say${lg ? " lg" : ""}" data-say="${esc(text)}" aria-label="Poslušaj: ${esc(text)}">${SPEAKER}</button>` : "";
 
+/* ===================== Speaking: the phone listens and checks =====================
+   Browser speech recognition (Chrome, Edge, Safari on Android, iPhone and Mac). Brave and Firefox don't offer it,
+   so there the speaking parts simply don't appear. It checks whether the phone UNDERSTOOD the words
+   (a good sign a native speaker would), not a sound-by-sound score. */
+const SRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const canListen = () => !!SRec && !P.nomic && !navigator.brave;
+const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
+const SPK = {"nobrowser": "Ovaj pregledač ne može da sluša. Probaj Chrome ili Safari.", "allow": "Dozvoli mikrofon za ovu stranicu, pa probaj ponovo.", "nothing": "Nisam ništa čuo. Dodirni mikrofon i govori.", "network": "Za ovo treba internet (i ne radi u Brave-u).", "failed": "Nije uspelo. Probaj ponovo.", "sayit": "Izgovori", "listening": "Slušam… reci:", "good": "Bravo! Razumeo sam ✓", "almost": "Skoro. Telefon je čuo:"};
+let REC = null;
+function listen(onDone, onState) {
+  if (!SRec) { onDone({ err: SPK.nobrowser }); return; }
+  try { if (REC) REC.abort(); } catch (e) {}
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+  const r = new SRec(); REC = r;
+  r.lang = "en-US"; r.interimResults = true; r.maxAlternatives = 5; r.continuous = false;
+  let alts = [], interim = "", done = false;
+  const finish = o => { if (done) return; done = true; REC = null; onDone(o); };
+  r.onresult = e => {
+    interim = spLat(Array.from(e.results).map(x => x[0].transcript).join(" "));
+    const last = e.results[e.results.length - 1];
+    if (last.isFinal) alts = Array.from(last).map(a => spLat(Array.from(e.results).slice(0, -1).map(x => x[0].transcript).concat(a.transcript).join(" ")));
+    onState && onState(interim);
+  };
+  r.onerror = e => finish({ err: e.error === "not-allowed" || e.error === "service-not-allowed" ? SPK.allow : e.error === "no-speech" ? SPK.nothing : e.error === "network" ? SPK.network : SPK.failed });
+  r.onend = () => finish(alts.length || interim ? { alts: alts.length ? alts : [interim] } : { err: SPK.nothing });
+  try { r.start(); onState && onState(""); } catch (e) { finish({ err: SPK.failed }); }
+}
+const EN_NUM = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"], EN_TENS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+function enNum(n) { if (n < 20) return EN_NUM[n]; if (n < 100) return EN_TENS[Math.floor(n / 10)] + (n % 10 ? " " + EN_NUM[n % 10] : ""); if (n < 1000) return EN_NUM[Math.floor(n / 100)] + " hundred" + (n % 100 ? " " + enNum(n % 100) : ""); if (n < 1e6) return enNum(Math.floor(n / 1000)) + " thousand" + (n % 1000 ? " " + enNum(n % 1000) : ""); return String(n); }
+const EN_SHORT = { "i'm": "i am", "you're": "you are", "it's": "it is", "that's": "that is", "what's": "what is", "he's": "he is", "she's": "she is", "we're": "we are", "they're": "they are", "don't": "do not", "doesn't": "does not", "can't": "cannot", "isn't": "is not", "i'd": "i would", "let's": "let us", "where's": "where is", "how's": "how is" };
+const spLat = t => String(t);
+const enNorm = s => String(s).toLowerCase().replace(/[’‘]/g, "'").replace(/…/g, " ").replace(/\b[a-z]+'[a-z]+\b/g, w => EN_SHORT[w] || w.replace(/'/g, "")).replace(/\bcan not\b/g, "cannot").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+/* word-by-word comparison: which words of the target did the phone hear? */
+const spWords = s => enNorm(s).replace(/\b(\d+)\b/g, d => enNum(+d)).split(/\s+/).filter(Boolean);
+function compareSpeech(target, alts) {
+  const tw = spWords(target); let best = null;
+  for (const a of alts) {
+    const hw = spWords(a), n = tw.length, m = hw.length, L = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = tw[i] === hw[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const hit = new Array(n).fill(false); let i = 0, j = 0;
+    while (i < n && j < m) { if (tw[i] === hw[j]) { hit[i] = true; i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
+    const r = { heard: a, hit, score: n ? hit.filter(Boolean).length / n : 0, extra: Math.max(0, m - L[0][0]), words: String(target).replace(/…/g, "").trim().split(/\s+/) };
+    if (!best || r.score > best.score || (r.score === best.score && r.extra < best.extra)) best = r;
+  }
+  best.ok = best.score >= (best.words.length <= 2 ? 1 : 0.8);
+  return best;
+}
+/* the target with the words that weren't understood marked */
+function speechDiff(res) {
+  let k = 0;
+  return res.words.map(w => { const n = spWords(w).length; const miss = res.hit.slice(k, k + n).some(x => !x); k += n; return miss ? `<u class="miss">${esc(w)}</u>` : esc(w); }).join(" ");
+}
+const micBtn = (text, cls) => canListen() && text ? `<button class="say mic-b ${cls || ""}" data-mic="${esc(text)}" aria-label="${SPK.sayit}">${MIC}</button>` : "";
+let toastEl = null, toastT = null;
+function toast(html, ms) { if (toastEl) toastEl.remove(); clearTimeout(toastT); toastEl = document.createElement("div"); toastEl.className = "mtoast"; toastEl.innerHTML = html; toastEl.addEventListener("click", e => { const s = e.target.closest("[data-say]"); if (s) speak(s.dataset.say); else { toastEl.remove(); toastEl = null; } }); document.body.appendChild(toastEl); toastT = setTimeout(() => { if (toastEl) { toastEl.remove(); toastEl = null; } }, ms || 7000); }
+function micCheck(btn, text) {
+  document.querySelectorAll(".mic-b.on").forEach(x => x.classList.remove("on")); btn.classList.add("on");
+  toast(`<div class="fbox ok"><span class="v">🎤 ${SPK.listening}</span><div><b>${esc(text)}</b></div></div>`, 9000);
+  listen(o => {
+    btn.classList.remove("on");
+    if (o.err) { toast(`<div class="fbox no"><span class="v">${esc(o.err)}</span></div>`); return; }
+    const res = compareSpeech(text, o.alts); 
+    toast(res.ok ? `<div class="fbox ok"><span class="v">${SPK.good}</span><div>„${esc(res.heard)}”</div></div>`
+      : `<div class="fbox no"><span class="v">${SPK.almost}</span><div>„${esc(res.heard)}”</div><div>${speechDiff(res)} ${sayBtn(text)}</div></div>`, res.ok ? 4000 : 9000);
+  });
+}
+function dictate(btn, id) {
+  const box = document.getElementById(id); if (!box) return; btn.classList.add("on");
+  listen(o => { btn.classList.remove("on"); if (o.err) { toast(`<div class="fbox no"><span class="v">${esc(o.err)}</span></div>`); return; }
+    const t = document.getElementById(id); if (!t) return; t.value = (t.value ? t.value.trim() + " " : "") + o.alts[0]; t.dispatchEvent(new Event("input", { bubbles: true })); t.focus(); });
+}
+
 /* ---------- Helpers ---------- */
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -756,16 +839,17 @@ function progressView() {
 }
 function topic() {
   const t = TOPICS.find(x => x.id === V.topic), tab = V.tab || "words";
-  const tabs = [["words", "Reči"], ["cards", "Kartice"]].concat(gameKind(t.id) ? [["game", "Igra"]] : []).concat([["quiz", "Kviz"]]).concat(P.mute ? [] : [["listen", "Slušaj"]]);
+  const tabs = [["words", "Reči"], ["cards", "Kartice"]].concat(gameKind(t.id) ? [["game", "Igra"]] : []).concat([["quiz", "Kviz"]]).concat(P.mute ? [] : [["listen", "Slušaj"]]).concat(canListen() ? [["speak", "Izgovori"]] : []);
   let body = "";
   if (tab === "words") body = `<ul class="words">${keysOf(t.id).map(k => { const w = BY_KEY[k]; return `<li>
       <div class="vis">${pic(w.pic, w.en)}</div>
       <div class="w"><div class="en">${gl(w.en)}${learned(k) ? `<span class="ok-mark">znam</span>` : ""}</div><div class="sr">${esc(w.sr)}</div><div class="hint">${esc(w.hint)}</div></div>
-      ${sayBtn(w.en)}</li>`; }).join("")}</ul>
+      <span class="row" style="gap:6px">${sayBtn(w.en)}${micBtn(w.en)}</span></li>`; }).join("")}</ul>
     <p class="tip-tap">Dodirni bilo koju englesku reč (podvučenu tačkicama) da vidiš šta znači i zašto tako izgleda.</p>
     <p class="note">Kartice i kviz te prvo pitaju ono što još ne znaš.${gameKind(t.id) ? " Probaj i Igru!" : ""}</p>`;
   else if (tab === "cards") body = cardsView();
   else if (tab === "game") body = gameView();
+  else if (tab === "speak") body = speakView();
   else body = quizView();
   return `${topBar("home")}<h1>${esc(t.name)}</h1>
     <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${tab === k}" data-tab="${k}" data-topic="${t.id}">${l}</button>`).join("")}</div>${body}`;
@@ -788,7 +872,7 @@ function deckBody() {
   const w = BY_KEY[V.deck[V.pos]];
   return `<p class="count">Kartica ${V.pos + 1} od ${V.deck.length}</p>
     <div class="card">${w.pic ? `<div class="pic">${pic(w.pic, w.en)}</div>` : ""}<div class="row"><div class="en">${V.flip ? gl(w.en) : esc(w.en)}</div>${sayBtn(w.en)}</div>
-      ${V.flip ? `<div class="sr">${esc(w.sr)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div>` : `<p class="muted">Da li znaš šta znači?</p>`}</div>
+      ${V.flip ? `<div class="sr">${esc(w.sr)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div>${canListen() ? `<div class="row" style="justify-content:center;gap:10px">${micBtn(w.en)}<span class="hint">Izgovori, telefon proverava</span></div>` : ""}` : `<p class="muted">Da li znaš šta znači?</p>`}</div>
     ${V.flip ? `<div class="pair"><button class="big no" data-know="0">Ne znam još</button><button class="big yes" data-know="1">Znam</button></div>`
              : `<button class="big" data-flip>Pokaži prevod</button>`}`;
 }
@@ -815,6 +899,23 @@ function quizView() {
   const fb = a ? (a === q.k ? answerBox("ok", "Tačno! ✓", w) : answerBox("no", "Tačan odgovor je:", w)) : `<p class="feedback"></p>`;
   return `<p class="count">Pitanje ${V.qi + 1} od ${V.qs.length}</p>${head}<div class="options">${opts}</div>${fb}
     ${a ? `<button class="big" data-next>Dalje</button>` : ""}`;
+}
+
+/* Say it: she sees the picture and the Serbian word, says it in English, and the phone checks */
+function speakView() {
+  if (!V.sp) { const keys = keysOf(V.topic); V.sp = { keys: shuffle(keys.filter(k => !learned(k))).concat(shuffle(keys.filter(learned))).slice(0, 8), i: 0, right: 0 }; }
+  const S = V.sp;
+  if (S.i >= S.keys.length) return doneBox(S.right, S.keys.length, "Svaki put sve bolje. Probaj ponovo.");
+  const w = BY_KEY[S.keys[S.i]], c = S.cur || {};
+  const head = `<p class="count">Reč ${S.i + 1} od ${S.keys.length}</p>
+    <div class="card">${w.pic ? `<div class="pic">${pic(w.pic, w.sr)}</div>` : ""}<div class="sr" style="font-size:28px">${esc(w.sr)}</div>
+      ${c.show || c.ok ? `<div class="row"><div class="en">${gl(w.en)}</div>${sayBtn(w.en)}</div><div class="hint">Izgovor: ${esc(w.hint)}</div>` : `<p class="muted">Kako se ovo kaže na engleskom? Reci naglas.</p>`}</div>`;
+  if (c.ok) return head + `<div class="fbox ok" role="status"><span class="v">Bravo! Telefon te razumeo ✓</span><div>Čuo sam: „${esc(c.res.heard)}”</div>${c.res.score < 1 ? `<div class="hint">Nije baš jasno: ${speechDiff(c.res)}</div>` : ""}</div><button class="big" data-spnext>Dalje</button>`;
+  return head + `<button class="bigmic ${c.busy ? "on" : ""}" data-speak aria-label="Dodirni i govori">${MIC}</button>
+    <p class="live" id="live">${c.busy ? "Slušam…" : "Dodirni mikrofon i reci na engleskom"}</p>
+    ${c.err ? `<div class="fbox no"><span class="v">${esc(c.err)}</span></div>` : ""}
+    ${c.res ? `<div class="fbox no" role="status"><span class="v">Skoro. Telefon je čuo:</span><div>„${esc(c.res.heard)}”</div><div>Nije razumeo: ${speechDiff(c.res)}</div><div class="hint">Poslušaj pa probaj opet.</div></div>` : ""}
+    <div class="pair">${c.show ? `<button class="big ghost" data-spnext>Dalje</button>` : `<button class="big ghost" data-spshow>Pokaži reč</button>`}<button class="big ghost" data-spnext data-spskip>Preskoči</button></div>`;
 }
 
 /* Game: hear/see the English word, tap the right color, number, day, picture, or place on the body */
@@ -1062,6 +1163,7 @@ function chatView() {
     <p class="tip-tap">Dodirni englesku reč da vidiš šta znači. Zvučnik ponavlja rečenicu.</p>
     <div class="chat">${msgs}${c.busy ? `<p class="typing">piše…</p>` : ""}${c.err ? `<div class="fix"><b>${esc(c.err)}</b></div>` : ""}${sugg}<span id="chatend"></span></div>
     <div class="composer">${c.left != null && c.left < 15 ? `<span class="note">Još ${c.left} poruka danas</span>` : ""}
+      ${canListen() ? `<button class="big ghost" data-dictate="chatin" style="min-height:48px;font-size:18px">🎤 Reci na engleskom, ja pišem</button>` : ""}
       <div class="rowc"><textarea id="chatin" lang="en" placeholder="Write here… / Piši ovde…" autocapitalize="sentences">${esc(c.draft || "")}</textarea><button class="big" data-send ${c.busy ? "disabled" : ""}>Pošalji</button></div></div>`;
 }
 
@@ -1087,6 +1189,22 @@ app.addEventListener("click", e => {
   if (z) { pickAnswer(z.dataset.pick); return; }
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.say) { speak(b.dataset.say); return; }
+  if (b.dataset.mic) { micCheck(b, b.dataset.mic); return; }
+  if (b.dataset.dictate) { dictate(b, b.dataset.dictate); return; }
+  if (b.hasAttribute("data-speak") && V.sp) {
+    const S = V.sp, k = S.keys[S.i], c = S.cur = Object.assign(S.cur || {}, { busy: true, err: "", res: null }); render();
+    listen(o => {
+      if (V.sp !== S || S.keys[S.i] !== k) return;
+      c.busy = false;
+      if (o.err) { c.err = o.err; render(); return; }
+      c.res = compareSpeech(BY_KEY[k].en, o.alts);
+      if (c.res.ok) { c.ok = true; S.right++; if (!c.show) mark(k, true); else { const t = todayKey(); P.days[t] = (P.days[t] || 0) + 1; save(); } }
+      c.tries = (c.tries || 0) + 1; render(); showNext();
+    }, t => { const el = document.getElementById("live"); if (el) el.textContent = t ? "„" + t + "”" : "Slušam…"; });
+    return;
+  }
+  if (b.hasAttribute("data-spshow")) { const S = V.sp; S.cur = Object.assign(S.cur || {}, { show: true }); speak(BY_KEY[S.keys[S.i]].en); render(); return; }
+  if (b.hasAttribute("data-spnext")) { const S = V.sp, c = S.cur || {}; if (!c.ok && (c.tries || c.show) && !b.hasAttribute("data-spskip")) mark(S.keys[S.i], false); S.i++; S.cur = null; render(); window.scrollTo({ top: 0 }); return; }
   if (b.hasAttribute("data-bkload")) {
     const msg = document.getElementById("bk-msg"), code = document.getElementById("bk-in").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (!/^[A-Z2-9]{6}$/.test(code)) { msg.textContent = "Kod ima 6 znakova, slova i brojeve. Proveri da li je dobro ukucan."; return; }
@@ -1129,7 +1247,7 @@ app.addEventListener("click", e => {
   if (b.hasAttribute("data-gnext")) { const g = V.g; g.i++; g.answered = null; newRound(); render(); if (g.i < g.items.length) speak(BY_KEY[g.items[g.i]].en); return; }
   if (b.hasAttribute("data-again")) {
     if (V.screen === "review") startDeck(shuffle(dueKeys().length ? dueKeys() : V.deck).slice(0, 15));
-    else { V.deck = null; V.qs = null; V.g = null; }
+    else { V.deck = null; V.qs = null; V.g = null; V.sp = null; }
     render(); return;
   }
 });
