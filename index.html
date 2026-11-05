@@ -409,7 +409,7 @@ const TOPICS = [
 const ALL = []; TOPICS.forEach(t => t.words.forEach(w => ALL.push({ key: t.id + ":" + w[0], topic: t.id, en: w[0], sr: w[1], hint: w[2], pic: w[3] || "" })));
 const BY_KEY = Object.fromEntries(ALL.map(w => [w.key, w]));
 const keysOf = id => ALL.filter(w => w.topic === id).map(w => w.key);
-const PHRASES = ALL.filter(w => /\s/.test(w.en) && !/^to /.test(w.en) && !/^one /.test(w.en));
+const PHRASES = ALL.filter(w => /\s/.test(w.en) && !/^to /.test(w.en) && w.topic !== "brojevi" && !(w.pic || "").startsWith("n:"));
 const DAILY_GOAL = 30;
 const DAYS = [0, 1, 3, 7, 14, 30]; // days until the next review, by box
 
