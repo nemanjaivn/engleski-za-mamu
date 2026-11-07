@@ -642,24 +642,47 @@ const canListen = () => !!SRec && !P.nomic && !navigator.brave;
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
 const SPK = {"nobrowser": "Ovaj pregledač ne može da sluša. Probaj Chrome ili Safari.", "allow": "Dozvoli mikrofon za ovu stranicu, pa probaj ponovo.", "nothing": "Nisam ništa čuo. Dodirni mikrofon i govori.", "network": "Za ovo treba internet (i ne radi u Brave-u).", "failed": "Nije uspelo. Probaj ponovo.", "sayit": "Izgovori", "listening": "Slušam… reci:", "good": "Bravo! Razumeo sam ✓", "almost": "Skoro. Telefon je čuo:"};
 let REC = null;
+const spMsg = k => SPK[k];
 function listen(onDone, onState) {
-  if (!SRec) { onDone({ err: SPK.nobrowser }); return; }
-  try { if (REC) REC.abort(); } catch (e) {}
+  if (!SRec) { onDone({ err: spMsg("nobrowser") }); return; }
+  // a second tap while listening: quietly drop the old listener instead of showing an error
+  if (REC) { const old = REC; REC = null; old.quiet = true; try { old.abort(); } catch (e) {} }
   try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
   const r = new SRec(); REC = r;
   r.lang = "en-US"; r.interimResults = true; r.maxAlternatives = 5; r.continuous = false;
-  let alts = [], interim = "", done = false;
-  const finish = o => { if (done) return; done = true; REC = null; onDone(o); };
-  r.onresult = e => {
-    interim = spLat(Array.from(e.results).map(x => x[0].transcript).join(" "));
-    const last = e.results[e.results.length - 1];
-    if (last.isFinal) alts = Array.from(last).map(a => spLat(Array.from(e.results).slice(0, -1).map(x => x[0].transcript).concat(a.transcript).join(" ")));
-    onState && onState(interim);
+  let alts = [], heard = "", done = false, quietT = null, hardT = null;
+  const finish = o => { if (done) return; done = true; clearTimeout(quietT); clearTimeout(hardT); if (REC === r) REC = null; if (!r.quiet) onDone(o); };
+  const result = () => alts.length ? { alts } : heard ? { alts: [heard] } : { err: spMsg("nothing") };
+  const wrapUp = () => { try { r.stop(); } catch (e) {} setTimeout(() => finish(result()), 900); };
+  // Android Chrome repeats earlier words in later results ("hallo", "hallo hoe", "hallo hoe gaat"): keep each phrase once
+  const joinParts = (res, lastText) => {
+    const parts = [];
+    for (let i = 0; i < res.length; i++) {
+      const t = (i === res.length - 1 && lastText != null ? lastText : res[i][0].transcript).trim(); if (!t) continue;
+      const p = parts[parts.length - 1];
+      if (p && t.toLowerCase().startsWith(p.toLowerCase())) parts[parts.length - 1] = t;
+      else if (!p || !p.toLowerCase().includes(t.toLowerCase())) parts.push(t);
+    }
+    return spLat(parts.join(" ")).trim();
   };
-  r.onerror = e => finish({ err: e.error === "not-allowed" || e.error === "service-not-allowed" ? SPK.allow : e.error === "no-speech" ? SPK.nothing : e.error === "network" ? SPK.network : SPK.failed });
-  r.onend = () => finish(alts.length || interim ? { alts: alts.length ? alts : [interim] } : { err: SPK.nothing });
-  try { r.start(); onState && onState(""); } catch (e) { finish({ err: SPK.failed }); }
+  r.onresult = e => {
+    const res = e.results, last = res[res.length - 1];
+    heard = joinParts(res);
+    if (last.isFinal) alts = Array.from(last).map(a => joinParts(res, a.transcript)).filter(Boolean);
+    onState && onState(heard);
+    if (last.isFinal) wrapUp();
+    else { clearTimeout(quietT); quietT = setTimeout(wrapUp, 1600); }   // iPhone sometimes never sends a final result
+  };
+  r.onerror = e => {
+    if (r.quiet) return;
+    if (heard || e.error === "aborted") { finish(result()); return; }
+    finish({ err: e.error === "not-allowed" || e.error === "service-not-allowed" ? spMsg("allow") : e.error === "no-speech" ? spMsg("nothing") : e.error === "network" ? spMsg("network") : spMsg("failed") });
+  };
+  r.onend = () => finish(result());
+  hardT = setTimeout(wrapUp, 10000);   // never stay stuck on "Listening…"
+  try { r.start(); onState && onState(""); } catch (e) { finish({ err: spMsg("failed") }); }
 }
+function stopListening() { if (REC) { try { REC.stop(); } catch (e) {} } }
 const EN_NUM = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"], EN_TENS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
 function enNum(n) { if (n < 20) return EN_NUM[n]; if (n < 100) return EN_TENS[Math.floor(n / 10)] + (n % 10 ? " " + EN_NUM[n % 10] : ""); if (n < 1000) return EN_NUM[Math.floor(n / 100)] + " hundred" + (n % 100 ? " " + enNum(n % 100) : ""); if (n < 1e6) return enNum(Math.floor(n / 1000)) + " thousand" + (n % 1000 ? " " + enNum(n % 1000) : ""); return String(n); }
 const EN_SHORT = { "i'm": "i am", "you're": "you are", "it's": "it is", "that's": "that is", "what's": "what is", "he's": "he is", "she's": "she is", "we're": "we are", "they're": "they are", "don't": "do not", "doesn't": "does not", "can't": "cannot", "isn't": "is not", "i'd": "i would", "let's": "let us", "where's": "where is", "how's": "how is" };
@@ -689,6 +712,7 @@ const micBtn = (text, cls) => canListen() && text ? `<button class="say mic-b ${
 let toastEl = null, toastT = null;
 function toast(html, ms) { if (toastEl) toastEl.remove(); clearTimeout(toastT); toastEl = document.createElement("div"); toastEl.className = "mtoast"; toastEl.innerHTML = html; toastEl.addEventListener("click", e => { const s = e.target.closest("[data-say]"); if (s) speak(s.dataset.say); else { toastEl.remove(); toastEl = null; } }); document.body.appendChild(toastEl); toastT = setTimeout(() => { if (toastEl) { toastEl.remove(); toastEl = null; } }, ms || 7000); }
 function micCheck(btn, text) {
+  if (btn.classList.contains("on")) { stopListening(); return; }
   document.querySelectorAll(".mic-b.on").forEach(x => x.classList.remove("on")); btn.classList.add("on");
   toast(`<div class="fbox ok"><span class="v">🎤 ${SPK.listening}</span><div><b>${esc(text)}</b></div></div>`, 9000);
   listen(o => {
@@ -1192,6 +1216,7 @@ app.addEventListener("click", e => {
   if (b.dataset.mic) { micCheck(b, b.dataset.mic); return; }
   if (b.dataset.dictate) { dictate(b, b.dataset.dictate); return; }
   if (b.hasAttribute("data-speak") && V.sp) {
+    if (V.sp.cur && V.sp.cur.busy) { stopListening(); return; }
     const S = V.sp, k = S.keys[S.i], c = S.cur = Object.assign(S.cur || {}, { busy: true, err: "", res: null }); render();
     listen(o => {
       if (V.sp !== S || S.keys[S.i] !== k) return;
